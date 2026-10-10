@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>فاکتوریت | Factoorit</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: #0c1413;
+            color: #f3f4f6;
+        }
+
+        .emerald-card {
+            background: rgba(18, 38, 34, 0.94);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            backdrop-filter: blur(10px);
+        }
+
+        .emerald-input {
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #ffffff;
+            transition: 0.2s;
+        }
+
+        .emerald-input:focus {
+            border-color: #10b981;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.12);
+        }
+
+        .plan-card {
+            cursor: pointer;
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            background: rgba(0, 0, 0, 0.35);
+            transition: 0.2s;
+        }
+
+        .plan-card:hover {
+            border-color: rgba(45, 212, 191, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .plan-card.selected {
+            border-color: #2dd4bf;
+            background: rgba(13, 148, 136, 0.22);
+            box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.15);
+        }
+
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+            #printArea, #printArea * {
+                visibility: visible !important;
+            }
+            #printArea {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                display: block !important;
+                background: #fff !important;
+                color: #000 !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen pb-16">
+
+    <!-- نوار بالای برنامه -->
+    <header class="emerald-card sticky top-0 z-40 p-4 border-b border-emerald-900/60
+                   flex justify-between items-center shadow-lg">
+        <div class="flex items-center space-x-3 space-x-reverse">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400
+                        flex items-center justify-center font-black text-black text-xl
+                        shadow-lg shadow-emerald-500/20">
+                ف
+            </div>
+            <div>
+                <h1 class="text-lg font-black text-emerald-400">فاکتوریت</h1>
+                <p class="text-xs text-gray-400">سیستم فاکتور و حسابداری آفلاین</p>
+            </div>
+        </div>
+
+        <div id="subBadge"
+             class="bg-emerald-950 border border-emerald-500/40 px-3 py-1 rounded-full
+                    text-xs font-bold text-emerald-300">
+            ۳ فاکتور رایگان
+        </div>
+    </header>
+
+    <main class="max-w-2xl mx-auto p-4 space-y-5">
+
+        <!-- کارت آمار -->
+        <div class="emerald-card rounded-2xl p-4 shadow-xl grid grid-cols-2 gap-4">
+            <div>
+                <div class="text-xs text-gray-400">جمع کل مطالبات شما:</div>
+                <div id="totalReceivable" class="text-lg font-black text-emerald-400 mt-1">
+                    ۰ تومان
+                </div>
+            </div>
+
+            <div class="text-left">
+                <div class="text-xs text-gray-400">تعداد کل فاکتورها:</div>
+                <div id="invoiceCountText" class="text-lg font-black text-gray-200 mt-1">
+                    ۰
+                </div>
+            </div>
+        </div>
+
+        <!-- تب‌ها -->
+        <div class="flex bg-black/40 p-1 rounded-xl border border-emerald-950">
+            <button onclick="switchTab('invoices')"
+                    id="tabInvBtn"
+                    class="flex-1 py-2 text-xs font-bold rounded-lg bg-emerald-500 text-black transition">
+                صدور و لیست فاکتورها
+            </button>
+
+            <button onclick="switchTab('customers')"
+                    id="tabCustBtn"
+                    class="flex-1 py-2 text-xs font-medium rounded-lg text-gray-400 hover:text-emerald-300 transition">
+                لیست مانده مشتریان
+            </button>
+        </div>
+
+        <!-- تب فاکتورها -->
+        <div id="tabInvoices" class="space-y-5">
+
+            <!-- فرم ثبت فاکتور -->
+            <div class="emerald-card rounded-2xl p-5 shadow-xl space-y-4">
+                <div class="flex items-center justify-between border-b border-emerald-900/40 pb-3">
+                    <h2 class="text-sm font-bold text-emerald-300 flex items-center gap-2">
+                        <span>➕</span>
+                        صدور فاکتور جدید
+                    </h2>
+                </div>
+
+                <!-- اطلاعات مشتری -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-1">
+                            نام خریدار / مشتری
+                            <span class="text-red-400">*</span>
+                        </label>
+                        <input type="text"
+                               id="custName"
+                               placeholder="مثال: رضا محمدی"
+                               class="emerald-input w-full rounded-xl p-2.5 text-sm">
+                    </div>
+
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-1">
+                            شماره تماس
+                            <span class="text-gray-500">(اختیاری)</span>
+                        </label>
+                        <input type="tel"
+                               id="custPhone"
+                               placeholder="۰۹۱۲..."
+                               class="emerald-input w-full rounded-xl p-2.5 text-sm">
+                    </div>
+                </div>
+
+                <!-- اقلام فاکتور -->
+                <div class="space-y-2">
+                    <label class="text-xs text-gray-400 block">
+                        اقلام فاکتور
+                        <span class="text-red-400">*</span>
+                    </label>
+
+                    <div id="itemsContainer" class="space-y-2"></div>
+
+                    <button onclick="addItemRow()"
+                            type="button"
+                            class="text-xs text-emerald-400 hover:text-emerald-300 font-bold mt-1 inline-block">
+                        + افزودن ردیف کالای دیگر
+                    </button>
+                </div>
+
+                <!-- مبالغ -->
+                <div class="grid grid-cols-2 gap-3 pt-3 border-t border-emerald-900/40 items-center">
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-1">
+                            مبلغ پرداختی مشتری <span class="text-gray-500">(تومان)</span>
+                        </label>
+                        <input type="text"
+                               inputmode="numeric"
+                               id="paidAmount"
+                               value="0"
+                               oninput="calculateTotal()"
+                               class="emerald-input w-full rounded-xl p-2.5 text-sm font-bold">
+                    </div>
+
+                    <div class="text-left bg-black/30 p-2.5 rounded-xl border border-emerald-950">
+                        <span class="text-xs text-gray-400 block">جمع کل فاکتور:</span>
+                        <span id="grandTotal" class="text-base font-black text-emerald-400">
+                            ۰ تومان
+                        </span>
+                    </div>
+                </div>
+
+                <button onclick="saveInvoice()"
+                        type="button"
+                        class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-black rounded-xl
+                               shadow-lg shadow-emerald-500/20 active:scale-95 transition text-sm">
+                    ثبت و ذخیره فاکتور
+                </button>
+            </div>
+
+            <!-- تاریخچه فاکتورها -->
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-gray-400">آخرین فاکتورهای ثبت‌شده</h3>
+                </div>
+
+                <!-- کادر سرچ فاکتورها -->
+                <div class="relative">
+                    <input type="text"
+                           id="searchInvoiceInput"
+                           oninput="renderInvoices()"
+                           placeholder="🔍 جستجو در فاکتورها (نام خریدار، شماره)..."
+                           class="emerald-input w-full rounded-xl p-2.5 text-xs">
+                </div>
+
+                <div id="invoiceList" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <!-- تب مشتریان -->
+        <div id="tabCustomers" class="hidden space-y-3">
+            <h3 class="text-xs font-bold text-gray-400">وضعیت مانده حساب مشتریان</h3>
+
+            <!-- کادر سرچ مشتریان -->
+            <div class="relative">
+                <input type="text"
+                       id="searchCustomerInput"
+                       oninput="renderCustomers()"
+                       placeholder="🔍 جستجوی مشتری بر اساس نام یا شماره..."
+                       class="emerald-input w-full rounded-xl p-2.5 text-xs">
+            </div>
+
+            <div id="customerList" class="space-y-2"></div>
+        </div>
+    </main>
+
+    <!-- مودال ریز حساب مشتری -->
+    <div id="customerDetailModal"
+         class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="emerald-card border border-emerald-500/40 max-w-lg w-full rounded-2xl p-4 space-y-3 shadow-2xl max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-emerald-900/60 pb-3">
+                <div>
+                    <h3 id="custDetailTitle" class="text-sm font-bold text-white">ریز حساب مشتری</h3>
+                    <p id="custDetailPhone" class="text-xs text-gray-400 mt-0.5"></p>
+                </div>
+                <button onclick="closeCustomerDetailModal()" class="text-gray-400 hover:text-white text-lg p-1">✖</button>
+            </div>
+
+            <div class="bg-black/40 rounded-xl p-3 border border-emerald-900 grid grid-cols-2 gap-2 text-xs">
+                <div>تعداد کل فاکتورها: <span id="custDetailTotalInvoices" class="font-bold text-white">۰</span></div>
+                <div class="text-left">کل مانده بدهی: <span id="custDetailTotalBalance" class="font-bold text-amber-400">۰ تومان</span></div>
+            </div>
+
+            <div class="text-xs font-bold text-gray-400 mt-2">لیست فاکتورها و پرداختی‌ها:</div>
+            <div id="custDetailList" class="overflow-y-auto space-y-2 pr-1 flex-1"></div>
+
+            <button onclick="closeCustomerDetailModal()"
+                    class="w-full py-2 bg-emerald-950 border border-emerald-500/40 text-emerald-300 font-bold rounded-xl text-xs mt-2">
+                بستن
+            </button>
+        </div>
+    </div>
+
+    <!-- مودال پیش‌نمایش چاپ فاکتور (سازگار با موبایل و وب‌ویو) -->
+    <div id="invoicePreviewModal"
+         class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="bg-white text-black max-w-lg w-full rounded-2xl p-4 shadow-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center border-b pb-2 mb-2">
+                <span class="text-xs font-bold text-gray-600">پیش‌نمایش فاکتور</span>
+                <button onclick="closeInvoicePreviewModal()" class="text-gray-500 hover:text-black text-sm font-bold">✕ بستن</button>
+            </div>
+
+            <div id="invoicePreviewContent" class="overflow-y-auto p-2 text-xs flex-1">
+                <!-- فاکتور اینجا ساخته می‌شود -->
+            </div>
+
+            <div class="flex gap-2 pt-3 border-t mt-2">
+                <button onclick="triggerNativePrint()"
+                        class="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow hover:bg-emerald-700">
+                    🖨️ چاپ / ذخیره PDF
+                </button>
+                <button onclick="closeInvoicePreviewModal()"
+                        class="px-4 py-2.5 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">
+                    انصراف
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال انتخاب اشتراک -->
+    <div id="payModal"
+         class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="emerald-card border border-emerald-500 max-w-md w-full rounded-3xl p-6 text-center space-y-4 shadow-2xl">
+            <div class="w-14 h-14 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl">
+                🔒
+            </div>
+
+            <h3 class="text-base font-bold text-white">۳ فاکتور رایگان شما تکمیل شد!</h3>
+            <p class="text-xs text-gray-300 leading-relaxed">
+                برای ادامه استفاده و صدور فاکتورهای بیشتر، یکی از اشتراک‌های زیر را انتخاب کنید.
+            </p>
+
+            <div class="grid grid-cols-1 gap-2 text-right">
+                <div id="planMonthly" onclick="selectPlan('monthly')" class="plan-card rounded-xl p-3">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="text-sm font-bold text-white">اشتراک یک‌ماهه</div>
+                            <div class="text-xs text-gray-400 mt-1">مناسب برای استفاده آزمایشی</div>
+                        </div>
+                        <div class="text-left">
+                            <div class="text-sm font-black text-emerald-400">۴۹٬۰۰۰ تومان</div>
+                            <div class="text-xs text-gray-500">۳۰ روزه</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="planSixMonths" onclick="selectPlan('sixMonths')" class="plan-card selected rounded-xl p-3">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="text-sm font-bold text-white">اشتراک شش‌ماهه</div>
+                            <div class="text-xs text-emerald-300 mt-1">اقتصادی و پیشنهادی</div>
+                        </div>
+                        <div class="text-left">
+                            <div class="text-sm font-black text-emerald-400">۱۹۰٬۰۰۰ تومان</div>
+                            <div class="text-xs text-gray-500">۱۸۰ روزه</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="planYearly" onclick="selectPlan('yearly')" class="plan-card rounded-xl p-3">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="text-sm font-bold text-white">اشتراک یک‌ساله</div>
+                            <div class="text-xs text-gray-400 mt-1">مناسب استفاده دائمی</div>
+                        </div>
+                        <div class="text-left">
+                            <div class="text-sm font-black text-emerald-400">۲۹۰٬۰۰۰ تومان</div>
+                            <div class="text-xs text-gray-500">۳۶۵ روزه</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-black/40 rounded-xl p-3 border border-emerald-900">
+                <div class="text-xs text-gray-400">پلن انتخاب‌شده:</div>
+                <div id="selectedPlanText" class="text-sm font-bold text-emerald-400 mt-1">
+                    اشتراک شش‌ماهه - ۱۹۰٬۰۰۰ تومان
+                </div>
+            </div>
+
+            <button onclick="requestPayment()"
+                    type="button"
+                    class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-black rounded-xl
+                           shadow-lg shadow-emerald-500/30 active:scale-95 transition">
+                خرید و فعال‌سازی اشتراک
+            </button>
+
+            <button onclick="closePayModal()" type="button" class="text-xs text-gray-400 underline">
+                بستن
+            </button>
+        </div>
+    </div>
+
+    <!-- ناحیه مخصوص پرینترهای سنتی / مرورگر -->
+    <div id="printArea" class="hidden"></div>
+
+    <script>
+        const PLANS = {
+            monthly: { id: 'monthly', title: 'اشتراک یک‌ماهه', days: 30, price: 49000, priceText: '۴۹٬۰۰۰ تومان' },
+            sixMonths: { id: 'sixMonths', title: 'اشتراک شش‌ماهه', days: 180, price: 190000, priceText: '۱۹۰٬۰۰۰ تومان' },
+            yearly: { id: 'yearly', title: 'اشتراک یک‌ساله', days: 365, price: 290000, priceText: '۲۹۰٬۰۰۰ تومان' }
+        };
+
+        let selectedPlan = 'sixMonths';
+        let currentViewingInvoice = null;
+
+        function toEnglishDigits(value) {
+            if (value === null || value === undefined || value === '') return '0';
+            return value.toString()
+                .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+                .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+                .replace(/[,\u066C٬]/g, '')
+                .trim();
+        }
+
+        function toNumber(value) {
+            const clean = toEnglishDigits(value);
+            const num = parseFloat(clean);
+            return isNaN(num) ? 0 : num;
+        }
+
+        function escapeHTML(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function getInvoices() {
+            try {
+                const data = JSON.parse(localStorage.getItem('ft_invoices') || '[]');
+                return Array.isArray(data) ? data : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function getSubscriptionExpiry() {
+            return parseInt(localStorage.getItem('ft_sub_expiry') || '0', 10);
+        }
+
+        function isSubscriptionActive() {
+            return Date.now() < getSubscriptionExpiry();
+        }
+
+        function itemRowHTML() {
+            return `
+                <div class="item-row grid grid-cols-12 gap-2">
+                    <input type="text" placeholder="عنوان کالا یا خدمات"
+                           class="item-title col-span-5 emerald-input rounded-xl p-2 text-xs">
+                    <input type="text" inputmode="numeric" placeholder="تعداد" value="1"
+                           oninput="calculateTotal()"
+                           class="item-qty col-span-2 emerald-input rounded-xl p-2 text-xs text-center">
+                    <input type="text" inputmode="numeric" placeholder="قیمت واحد"
+                           oninput="calculateTotal()"
+                           class="item-price col-span-4 emerald-input rounded-xl p-2 text-xs">
+                    <button onclick="removeItem(this)" type="button"
+                            class="col-span-1 text-red-400 hover:text-red-300 text-sm font-bold flex items-center justify-center">
+                        ✖
+                    </button>
+                </div>
+            `;
+        }
+
+        function addItemRow() {
+            document.getElementById('itemsContainer').insertAdjacentHTML('beforeend', itemRowHTML());
+        }
+
+        function removeItem(button) {
+            const rows = document.querySelectorAll('.item-row');
+            if (rows.length <= 1) {
+                alert('حداقل یک سطر کالا باید در فاکتور باشد.');
+                return;
+            }
+            button.closest('.item-row').remove();
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            let total = 0;
+            document.querySelectorAll('.item-row').forEach(row => {
+                const qty = toNumber(row.querySelector('.item-qty').value);
+                const price = toNumber(row.querySelector('.item-price').value);
+                if (qty > 0 && price > 0) total += qty * price;
+            });
+            document.getElementById('grandTotal').innerText = Math.round(total).toLocaleString('fa-IR') + ' تومان';
+            return total;
+        }
+
+        function selectPlan(planId) {
+            if (!PLANS[planId]) return;
+            selectedPlan = planId;
+            document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+            if (planId === 'monthly') document.getElementById('planMonthly').classList.add('selected');
+            if (planId === 'sixMonths') document.getElementById('planSixMonths').classList.add('selected');
+            if (planId === 'yearly') document.getElementById('planYearly').classList.add('selected');
+            const plan = PLANS[planId];
+            document.getElementById('selectedPlanText').innerText = plan.title + ' - ' + plan.priceText;
+        }
+
+        function closePayModal() {
+            document.getElementById('payModal').classList.add('hidden');
+        }
+
+        function saveInvoice() {
+            const invoices = getInvoices();
+            if (!isSubscriptionActive() && invoices.length >= 3) {
+                document.getElementById('payModal').classList.remove('hidden');
+                return;
+            }
+
+            const customerInput = document.getElementById('custName');
+            const customerName = customerInput.value.trim();
+            if (!customerName) {
+                alert('⚠️ لطفاً نام خریدار را وارد کنید.');
+                customerInput.focus();
+                return;
+            }
+
+            const items = [];
+            let total = 0;
+            document.querySelectorAll('.item-row').forEach(row => {
+                const title = row.querySelector('.item-title').value.trim();
+                const qty = toNumber(row.querySelector('.item-qty').value);
+                const price = toNumber(row.querySelector('.item-price').value);
+                if (title && qty > 0 && price > 0) {
+                    const sum = qty * price;
+                    items.push({ title, qty, price, sum });
+                    total += sum;
+                }
+            });
+
+            if (items.length === 0) {
+                alert('⚠️ لطفاً عنوان کالا، تعداد و قیمت واحد را صحیح وارد کنید.');
+                return;
+            }
+
+            let paidAmount = toNumber(document.getElementById('paidAmount').value);
+            if (paidAmount < 0) paidAmount = 0;
+            const remaining = Math.max(0, total - paidAmount);
+
+            const now = new Date();
+            const dateText = new Intl.DateTimeFormat('fa-IR', {
+                dateStyle: 'short',
+                timeStyle: 'short'
+            }).format(now);
+
+            const newInvoice = {
+                id: Date.now(),
+                customer: customerName,
+                phone: document.getElementById('custPhone').value.trim(),
+                items: items,
+                total: total,
+                paid: paidAmount,
+                remaining: remaining,
+                date: dateText
+            };
+
+            invoices.unshift(newInvoice);
+            localStorage.setItem('ft_invoices', JSON.stringify(invoices));
+
+            resetInvoiceForm();
+            render();
+            alert('✅ فاکتور با موفقیت ذخیره شد.');
+        }
+
+        function resetInvoiceForm() {
+            document.getElementById('custName').value = '';
+            document.getElementById('custPhone').value = '';
+            document.getElementById('paidAmount').value = '0';
+            document.getElementById('itemsContainer').innerHTML = itemRowHTML();
+            calculateTotal();
+        }
+
+        /* ساخت قالب گرافیکی برای نمایش و چاپ فاکتور */
+        function generateInvoicePrintHTML(invoice) {
+            const total = toNumber(invoice.total);
+            const paid = toNumber(invoice.paid || 0);
+            const remaining = toNumber(invoice.remaining);
+
+            let rows = '';
+            (invoice.items || []).forEach((item, index) => {
+                const qty = toNumber(item.qty);
+                const price = toNumber(item.price);
+                const sum = toNumber(item.sum);
+                rows += `
+                    <tr>
+                        <td style="border:1px solid #333; padding:6px; text-align:center;">${(index + 1).toLocaleString('fa-IR')}</td>
+                        <td style="border:1px solid #333; padding:6px;">${escapeHTML(item.title)}</td>
+                        <td style="border:1px solid #333; padding:6px; text-align:center;">${qty.toLocaleString('fa-IR')}</td>
+                        <td style="border:1px solid #333; padding:6px; text-align:left;">${price.toLocaleString('fa-IR')}</td>
+                        <td style="border:1px solid #333; padding:6px; text-align:left;">${sum.toLocaleString('fa-IR')}</td>
+                    </tr>
+                `;
+            });
+
+            return `
+                <div style="direction:rtl; font-family:Tahoma, sans-serif; color:#111; line-height:1.5;">
+                    <div style="border-bottom:2px solid #111; padding-bottom:8px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h2 style="font-size:16px; font-weight:bold; margin:0;">فاکتور فروش کالا و خدمات</h2>
+                            <p style="font-size:10px; color:#555; margin:2px 0 0 0;">فاکتوریت - نسخه موبایل</p>
+                        </div>
+                        <div style="text-align:left; font-size:11px;">
+                            <div>شماره: <strong>${String(invoice.id).slice(-6)}</strong></div>
+                            <div>تاریخ: <strong>${escapeHTML(invoice.date || '')}</strong></div>
+                        </div>
+                    </div>
+
+                    <div style="background:#f8f9fa; border:1px solid #ddd; padding:8px; border-radius:6px; margin-bottom:12px; font-size:11px;">
+                        <strong>خریدار:</strong> ${escapeHTML(invoice.customer || '')} ${invoice.phone ? ' (' + escapeHTML(invoice.phone) + ')' : ''}
+                    </div>
+
+                    <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:12px;">
+                        <thead>
+                            <tr style="background:#e5e7eb;">
+                                <th style="border:1px solid #333; padding:6px; width:30px;">#</th>
+                                <th style="border:1px solid #333; padding:6px;">شرح کالا / خدمات</th>
+                                <th style="border:1px solid #333; padding:6px; width:45px;">تعداد</th>
+                                <th style="border:1px solid #333; padding:6px;">قیمت واحد (تومان)</th>
+                                <th style="border:1px solid #333; padding:6px;">مبلغ کل (تومان)</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+
+                    <div style="border:1px solid #333; background:#fafafa; padding:8px; border-radius:6px; font-size:11px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                            <span>جمع کل فاکتور:</span>
+                            <strong>${total.toLocaleString('fa-IR')} تومان</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#15803d;">
+                            <span>مبلغ پرداختی:</span>
+                            <strong>${paid.toLocaleString('fa-IR')} تومان</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:12px; color:${remaining > 0 ? '#b91c1c' : '#15803d'}; border-top:1px dashed #ccc; padding-top:4px;">
+                            <span>مانده بدهی:</span>
+                            <span>${remaining > 0 ? remaining.toLocaleString('fa-IR') + ' تومان' : 'تسویه کامل'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /* باز کردن پیش‌نمایش چاپ فاکتور */
+        function printInvoice(id) {
+            const invoices = getInvoices();
+            const invoice = invoices.find(item => Number(item.id) === Number(id));
+            if (!invoice) return;
+
+            currentViewingInvoice = invoice;
+            const html = generateInvoicePrintHTML(invoice);
+
+            document.getElementById('invoicePreviewContent').innerHTML = html;
+            document.getElementById('invoicePreviewModal').classList.remove('hidden');
+
+            // ناحیه چاپ استاندارد مرورگر
+            document.getElementById('printArea').innerHTML = `
+                <div style="padding:20px; max-width:700px; margin:0 auto;">
+                    ${html}
+                </div>
+            `;
+        }
+
+        function closeInvoicePreviewModal() {
+            document.getElementById('invoicePreviewModal').classList.add('hidden');
+        }
+
+        /* فراخوانی عملیات چاپ */
+        function triggerNativePrint() {
+            if (window.AndroidBridge && typeof window.AndroidBridge.printHtml === 'function') {
+                window.AndroidBridge.printHtml(document.getElementById('printArea').innerHTML);
+                return;
+            }
+
+            // اگر پرینت مستقیم مرورگر پاسخ داد
+            try {
+                window.print();
+            } catch (e) {
+                alert('برای چاپ، لطفاً از صفحه اسکرین‌شات بگیرید یا آن را ذخیره فرمایید.');
+            }
+        }
+
+        /* باز کردن ریز حساب هر مشتری */
+        function openCustomerDetail(customerName) {
+            const invoices = getInvoices();
+            const customerInvoices = invoices.filter(inv => (inv.customer || 'بدون نام').trim() === customerName.trim());
+
+            if (customerInvoices.length === 0) return;
+
+            const phone = customerInvoices[0].phone || 'بدون شماره';
+            let totalRem = 0;
+            let listHTML = '';
+
+            customerInvoices.forEach(inv => {
+                const rem = toNumber(inv.remaining);
+                const tot = toNumber(inv.total);
+                const paid = toNumber(inv.paid || 0);
+                totalRem += rem;
+
+                listHTML += `
+                    <div class="bg-black/30 border border-emerald-950 p-2.5 rounded-xl space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-bold text-gray-200">فاکتور #${String(inv.id).slice(-6)}</span>
+                            <span class="text-gray-400 text-[10px]">${escapeHTML(inv.date || '')}</span>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-400">
+                            <span>کل: ${tot.toLocaleString('fa-IR')} تومان</span>
+                            <span>پرداختی: ${paid.toLocaleString('fa-IR')} تومان</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-1 border-t border-emerald-900/30 text-xs">
+                            <span class="${rem > 0 ? 'text-amber-400 font-bold' : 'text-emerald-400'}">
+                                ${rem > 0 ? 'مانده بدهی: ' + rem.toLocaleString('fa-IR') + ' تومان' : 'تسویه'}
+                            </span>
+                            <button onclick="printInvoice(${Number(inv.id)})" class="text-emerald-400 hover:underline text-[11px]">
+                                مشاهده و چاپ
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('custDetailTitle').innerText = 'ریز صورت‌حساب: ' + customerName;
+            document.getElementById('custDetailPhone').innerText = 'شماره تماس: ' + phone;
+            document.getElementById('custDetailTotalInvoices').innerText = customerInvoices.length.toLocaleString('fa-IR');
+            document.getElementById('custDetailTotalBalance').innerText = totalRem.toLocaleString('fa-IR') + ' تومان';
+            document.getElementById('custDetailList').innerHTML = listHTML;
+
+            document.getElementById('customerDetailModal').classList.remove('hidden');
+        }
+
+        function closeCustomerDetailModal() {
+            document.getElementById('customerDetailModal').classList.add('hidden');
+        }
+
+        function switchTab(tab) {
+            const invoicesTab = document.getElementById('tabInvoices');
+            const customersTab = document.getElementById('tabCustomers');
+            const invoicesButton = document.getElementById('tabInvBtn');
+            const customersButton = document.getElementById('tabCustBtn');
+
+            if (tab === 'invoices') {
+                invoicesTab.classList.remove('hidden');
+                customersTab.classList.add('hidden');
+                invoicesButton.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-emerald-500 text-black transition';
+                customersButton.className = 'flex-1 py-2 text-xs font-medium rounded-lg text-gray-400 hover:text-emerald-300 transition';
+            } else {
+                invoicesTab.classList.add('hidden');
+                customersTab.classList.remove('hidden');
+                customersButton.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-emerald-500 text-black transition';
+                invoicesButton.className = 'flex-1 py-2 text-xs font-medium rounded-lg text-gray-400 hover:text-emerald-300 transition';
+            }
+        }
+
+        function requestPayment() {
+            const plan = PLANS[selectedPlan];
+            if (window.AndroidBridge && typeof window.AndroidBridge.buySubscription === 'function') {
+                window.AndroidBridge.buySubscription(plan.id, plan.days, plan.price);
+                return;
+            }
+            if (confirm(`حالت آزمایشی:\n\nفعال‌سازی ${plan.title}\nبه مبلغ ${plan.priceText}؟`)) {
+                onPaymentSuccess(plan.days);
+            }
+        }
+
+        window.onPaymentSuccess = function(days) {
+            const selected = PLANS[selectedPlan];
+            const validDays = Number(days) > 0 ? Number(days) : selected.days;
+            const currentExpiry = getSubscriptionExpiry();
+            const addedMilliseconds = validDays * 24 * 60 * 60 * 1000;
+            const newExpiry = Math.max(Date.now(), currentExpiry) + addedMilliseconds;
+
+            localStorage.setItem('ft_sub_expiry', newExpiry.toString());
+            closePayModal();
+            render();
+            alert(`🎉 اشتراک ${validDays.toLocaleString('fa-IR')} روزه با موفقیت فعال شد!`);
+        };
+
+        /* رندر لیست فاکتورها به همراه فیلتر سرچ */
+        function renderInvoices() {
+            const invoices = getInvoices();
+            const query = (document.getElementById('searchInvoiceInput')?.value || '').trim().toLowerCase();
+
+            const invoiceList = document.getElementById('invoiceList');
+            invoiceList.innerHTML = '';
+
+            const filtered = invoices.filter(inv => {
+                if (!query) return true;
+                const cust = (inv.customer || '').toLowerCase();
+                const idStr = String(inv.id);
+                const phone = (inv.phone || '');
+                return cust.includes(query) || idStr.includes(query) || phone.includes(query);
+            });
+
+            if (filtered.length === 0) {
+                invoiceList.innerHTML = '<div class="text-center py-6 text-gray-500 text-xs">هیچ فاکتوری یافت نشد.</div>';
+                return;
+            }
+
+            filtered.forEach(invoice => {
+                const total = toNumber(invoice.total);
+                const remaining = toNumber(invoice.remaining);
+                const customerName = invoice.customer || 'بدون نام';
+
+                const remainingHTML = remaining > 0
+                    ? `<span class="text-amber-400 font-bold">مانده: ${remaining.toLocaleString('fa-IR')} تومان</span>`
+                    : '<span class="text-emerald-400">تسویه</span>';
+
+                invoiceList.innerHTML += `
+                    <div class="emerald-card p-3.5 rounded-xl flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-white text-sm">${escapeHTML(customerName)}</div>
+                            <div class="text-xs text-gray-400 mt-0.5">${escapeHTML(invoice.date || '')}</div>
+                            <div class="text-xs mt-1">
+                                <span class="text-gray-400">کل: ${total.toLocaleString('fa-IR')} تومان</span>
+                                <span class="text-gray-600"> | </span>
+                                ${remainingHTML}
+                            </div>
+                        </div>
+                        <button onclick="printInvoice(${Number(invoice.id)})"
+                                type="button"
+                                class="px-3 py-1.5 bg-emerald-950 hover:bg-emerald-900 border border-emerald-600/40 text-emerald-300 rounded-lg text-xs font-bold transition">
+                            مشاهده / چاپ
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        /* رندر لیست مشتریان به همراه فیلتر سرچ */
+        function renderCustomers() {
+            const invoices = getInvoices();
+            const query = (document.getElementById('searchCustomerInput')?.value || '').trim().toLowerCase();
+
+            const customers = {};
+            invoices.forEach(inv => {
+                const name = inv.customer || 'بدون نام';
+                const rem = toNumber(inv.remaining);
+                if (!customers[name]) {
+                    customers[name] = { phone: inv.phone || '', totalRemaining: 0, count: 0 };
+                }
+                customers[name].totalRemaining += rem;
+                customers[name].count += 1;
+            });
+
+            const customerList = document.getElementById('customerList');
+            customerList.innerHTML = '';
+
+            let names = Object.keys(customers);
+            if (query) {
+                names = names.filter(n => n.toLowerCase().includes(query) || (customers[n].phone || '').includes(query));
+            }
+
+            if (names.length === 0) {
+                customerList.innerHTML = '<div class="text-center py-6 text-gray-500 text-xs">مشتری‌ای یافت نشد.</div>';
+                return;
+            }
+
+            names.forEach(name => {
+                const customer = customers[name];
+                const rem = customer.totalRemaining;
+                const balanceHTML = rem > 0 ? rem.toLocaleString('fa-IR') + ' بدهکار' : 'تسویه';
+                const balanceClass = rem > 0 ? 'text-amber-400' : 'text-emerald-400';
+
+                customerList.innerHTML += `
+                    <div onclick="openCustomerDetail('${escapeHTML(name)}')"
+                         class="emerald-card p-3.5 rounded-xl flex justify-between items-center cursor-pointer hover:border-emerald-400 transition">
+                        <div>
+                            <div class="font-bold text-sm text-white flex items-center gap-1.5">
+                                <span>${escapeHTML(name)}</span>
+                                <span class="text-[10px] bg-emerald-950 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-700/50">ریز حساب 👈</span>
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">
+                                ${escapeHTML(customer.phone || 'بدون شماره')} • ${customer.count.toLocaleString('fa-IR')} فاکتور
+                            </div>
+                        </div>
+
+                        <div class="text-left">
+                            <div class="text-xs text-gray-400">مانده حساب:</div>
+                            <div class="text-sm font-black ${balanceClass}">${balanceHTML}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function render() {
+            const invoices = getInvoices();
+            const badge = document.getElementById('subBadge');
+
+            if (isSubscriptionActive()) {
+                const remainingDays = Math.ceil((getSubscriptionExpiry() - Date.now()) / (1000 * 60 * 60 * 24));
+                badge.innerText = `اشتراک فعال (${remainingDays.toLocaleString('fa-IR')} روز)`;
+                badge.className = 'bg-emerald-900 border border-emerald-500 text-emerald-300 px-3 py-1 rounded-full text-xs font-bold';
+            } else {
+                const freeInvoices = Math.max(0, 3 - invoices.length);
+                badge.innerText = freeInvoices > 0 ? `${freeInvoices.toLocaleString('fa-IR')} فاکتور رایگان` : 'نیازمند اشتراک';
+                badge.className = 'bg-amber-950 border border-amber-500 text-amber-300 px-3 py-1 rounded-full text-xs font-bold';
+            }
+
+            document.getElementById('invoiceCountText').innerText = invoices.length.toLocaleString('fa-IR');
+
+            const totalRemaining = invoices.reduce((acc, inv) => acc + toNumber(inv.remaining), 0);
+            document.getElementById('totalReceivable').innerText = Math.round(totalRemaining).toLocaleString('fa-IR') + ' تومان';
+
+            renderInvoices();
+            renderCustomers();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('itemsContainer').innerHTML = itemRowHTML();
+            selectPlan('sixMonths');
+            calculateTotal();
+            render();
+        });
+    </script>
+</body>
+</html>
