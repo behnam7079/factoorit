@@ -244,10 +244,10 @@
             <!-- کادر سرچ مشتریان -->
             <div class="relative">
                 <input type="text"
-                       id="searchCustomerInput"
-                       oninput="renderCustomers()"
-                       placeholder="🔍 جستجوی مشتری بر اساس نام یا شماره..."
-                       class="emerald-input w-full rounded-xl p-2.5 text-xs">
+                           id="searchCustomerInput"
+                           oninput="renderCustomers()"
+                           placeholder="🔍 جستجوی مشتری بر اساس نام یا شماره..."
+                           class="emerald-input w-full rounded-xl p-2.5 text-xs">
             </div>
 
             <div id="customerList" class="space-y-2"></div>
@@ -274,10 +274,23 @@
             <div class="text-xs font-bold text-gray-400 mt-2">لیست فاکتورها و پرداختی‌ها:</div>
             <div id="custDetailList" class="overflow-y-auto space-y-2 pr-1 flex-1"></div>
 
-            <button onclick="closeCustomerDetailModal()"
-                    class="w-full py-2 bg-emerald-950 border border-emerald-500/40 text-emerald-300 font-bold rounded-xl text-xs mt-2">
-                بستن
-            </button>
+            <!-- دکمه‌های مودال -->
+            <div class="grid grid-cols-1 gap-2 mt-2">
+                <button onclick="deleteCustomer(currentSelectedCustomer)"
+                        class="py-2 bg-red-900/50 border border-red-500/50 text-red-400 font-bold rounded-xl text-xs">
+                    حذف کامل مشتری و تمامی فاکتورها
+                </button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="createNewInvoiceForCustomer()"
+                            class="py-2 bg-emerald-500 text-black font-bold rounded-xl text-xs">
+                        فاکتور جدید
+                    </button>
+                    <button onclick="closeCustomerDetailModal()"
+                            class="py-2 bg-emerald-950 border border-emerald-500/40 text-emerald-300 font-bold rounded-xl text-xs">
+                        بستن
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -393,6 +406,7 @@
 
         let selectedPlan = 'sixMonths';
         let currentViewingInvoice = null;
+        let currentSelectedCustomer = '';
 
         function toEnglishDigits(value) {
             if (value === null || value === undefined || value === '') return '0';
@@ -494,6 +508,25 @@
             document.getElementById('payModal').classList.add('hidden');
         }
 
+        // تابع حذف مشتری
+        function deleteCustomer(customerName) {
+            if (!customerName || !confirm(`آیا مطمئن هستید تمام فاکتورهای "${customerName}" برای همیشه حذف شوند؟`)) {
+                return;
+            }
+            let invoices = getInvoices();
+            invoices = invoices.filter(inv => (inv.customer || 'بدون نام').trim() !== customerName.trim());
+            localStorage.setItem('ft_invoices', JSON.stringify(invoices));
+            closeCustomerDetailModal();
+            render();
+            alert('✅ مشتری و تمامی فاکتورهای او با موفقیت حذف شدند.');
+        }
+
+        function createNewInvoiceForCustomer() {
+            closeCustomerDetailModal();
+            switchTab('invoices');
+            document.getElementById('custName').value = currentSelectedCustomer;
+        }
+
         function saveInvoice() {
             const invoices = getInvoices();
             if (!isSubscriptionActive() && invoices.length >= 3) {
@@ -564,7 +597,6 @@
             calculateTotal();
         }
 
-        /* ساخت قالب گرافیکی برای نمایش و چاپ فاکتور */
         function generateInvoicePrintHTML(invoice) {
             const total = toNumber(invoice.total);
             const paid = toNumber(invoice.paid || 0);
@@ -634,7 +666,6 @@
             `;
         }
 
-        /* باز کردن پیش‌نمایش چاپ فاکتور */
         function printInvoice(id) {
             const invoices = getInvoices();
             const invoice = invoices.find(item => Number(item.id) === Number(id));
@@ -646,7 +677,6 @@
             document.getElementById('invoicePreviewContent').innerHTML = html;
             document.getElementById('invoicePreviewModal').classList.remove('hidden');
 
-            // ناحیه چاپ استاندارد مرورگر
             document.getElementById('printArea').innerHTML = `
                 <div style="padding:20px; max-width:700px; margin:0 auto;">
                     ${html}
@@ -658,14 +688,11 @@
             document.getElementById('invoicePreviewModal').classList.add('hidden');
         }
 
-        /* فراخوانی عملیات چاپ */
         function triggerNativePrint() {
             if (window.AndroidBridge && typeof window.AndroidBridge.printHtml === 'function') {
                 window.AndroidBridge.printHtml(document.getElementById('printArea').innerHTML);
                 return;
             }
-
-            // اگر پرینت مستقیم مرورگر پاسخ داد
             try {
                 window.print();
             } catch (e) {
@@ -673,8 +700,8 @@
             }
         }
 
-        /* باز کردن ریز حساب هر مشتری */
         function openCustomerDetail(customerName) {
+            currentSelectedCustomer = customerName;
             const invoices = getInvoices();
             const customerInvoices = invoices.filter(inv => (inv.customer || 'بدون نام').trim() === customerName.trim());
 
@@ -768,7 +795,6 @@
             alert(`🎉 اشتراک ${validDays.toLocaleString('fa-IR')} روزه با موفقیت فعال شد!`);
         };
 
-        /* رندر لیست فاکتورها به همراه فیلتر سرچ */
         function renderInvoices() {
             const invoices = getInvoices();
             const query = (document.getElementById('searchInvoiceInput')?.value || '').trim().toLowerCase();
@@ -819,7 +845,6 @@
             });
         }
 
-        /* رندر لیست مشتریان به همراه فیلتر سرچ */
         function renderCustomers() {
             const invoices = getInvoices();
             const query = (document.getElementById('searchCustomerInput')?.value || '').trim().toLowerCase();
