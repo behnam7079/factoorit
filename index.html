@@ -294,7 +294,7 @@
         </div>
     </div>
 
-    <!-- مودال پیش‌نمایش چاپ فاکتور (سازگار با موبایل و وب‌ویو) -->
+    <!-- مودال پیش‌نمایش چاپ فاکتور -->
     <div id="invoicePreviewModal"
          class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3">
         <div class="bg-white text-black max-w-lg w-full rounded-2xl p-4 shadow-2xl max-h-[90vh] flex flex-col">
@@ -394,7 +394,7 @@
         </div>
     </div>
 
-    <!-- ناحیه مخصوص پرینترهای سنتی / مرورگر -->
+    <!-- ناحیه مخصوص چاپ -->
     <div id="printArea" class="hidden"></div>
 
     <script>
@@ -508,7 +508,7 @@
             document.getElementById('payModal').classList.add('hidden');
         }
 
-        // تابع حذف مشتری
+        // مرحله سوم: امکان حذف کامل مشتری
         function deleteCustomer(customerName) {
             if (!customerName || !confirm(`آیا مطمئن هستید تمام فاکتورهای "${customerName}" برای همیشه حذف شوند؟`)) {
                 return;
@@ -521,10 +521,33 @@
             alert('✅ مشتری و تمامی فاکتورهای او با موفقیت حذف شدند.');
         }
 
+        // مرحله سوم: امکان حذف یک فاکتور تکی
+        function deleteSingleInvoice(id, event) {
+            if (event) event.stopPropagation();
+            if (!confirm('آیا از حذف این فاکتور مطمئن هستید؟')) return;
+
+            let invoices = getInvoices();
+            invoices = invoices.filter(inv => Number(inv.id) !== Number(id));
+            localStorage.setItem('ft_invoices', JSON.stringify(invoices));
+            
+            // اگر مودال ریز حساب باز بود، آن را هم آپدیت یا بسته کن
+            closeCustomerDetailModal();
+            render();
+            alert('✅ فاکتور با موفقیت حذف شد.');
+        }
+
+        // مرحله اول: زدن فاکتور جدید برای همان مشتری از طریق کلیک روی نامش
         function createNewInvoiceForCustomer() {
+            const customerName = currentSelectedCustomer;
+            const invoices = getInvoices();
+            // آخرین شماره تماس ثبت شده برای این مشتری را پیدا میکنیم
+            const found = invoices.find(inv => (inv.customer || '').trim() === customerName.trim());
+            const phone = found ? (found.phone || '') : '';
+
             closeCustomerDetailModal();
             switchTab('invoices');
-            document.getElementById('custName').value = currentSelectedCustomer;
+            document.getElementById('custName').value = customerName;
+            document.getElementById('custPhone').value = phone;
         }
 
         function saveInvoice() {
@@ -619,11 +642,11 @@
             });
 
             return `
-                <div style="direction:rtl; font-family:Tahoma, sans-serif; color:#111; line-height:1.5;">
+                <div style="direction:rtl; font-family:Tahoma, sans-serif; color:#111; line-height:1.5; background:#fff; padding:15px;">
                     <div style="border-bottom:2px solid #111; padding-bottom:8px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
                         <div>
                             <h2 style="font-size:16px; font-weight:bold; margin:0;">فاکتور فروش کالا و خدمات</h2>
-                            <p style="font-size:10px; color:#555; margin:2px 0 0 0;">فاکتوریت - نسخه موبایل</p>
+                            <p style="font-size:10px; color:#555; margin:2px 0 0 0;">فاکتوریت</p>
                         </div>
                         <div style="text-align:left; font-size:11px;">
                             <div>شماره: <strong>${String(invoice.id).slice(-6)}</strong></div>
@@ -666,6 +689,7 @@
             `;
         }
 
+        // مرحله دوم: اصلاح تابع چاپ برای نمایش کامل در وب‌ویو و موبایل
         function printInvoice(id) {
             const invoices = getInvoices();
             const invoice = invoices.find(item => Number(item.id) === Number(id));
@@ -677,11 +701,8 @@
             document.getElementById('invoicePreviewContent').innerHTML = html;
             document.getElementById('invoicePreviewModal').classList.remove('hidden');
 
-            document.getElementById('printArea').innerHTML = `
-                <div style="padding:20px; max-width:700px; margin:0 auto;">
-                    ${html}
-                </div>
-            `;
+            // مقداردهی به ناحیه پرینت سراسری
+            document.getElementById('printArea').innerHTML = html;
         }
 
         function closeInvoicePreviewModal() {
@@ -689,14 +710,16 @@
         }
 
         function triggerNativePrint() {
+            // اگر برنامه داخل اندروید با پل ارتباطی باشد
             if (window.AndroidBridge && typeof window.AndroidBridge.printHtml === 'function') {
                 window.AndroidBridge.printHtml(document.getElementById('printArea').innerHTML);
                 return;
             }
+            // حالت استاندارد مرورگر و وب‌ویو
             try {
                 window.print();
             } catch (e) {
-                alert('برای چاپ، لطفاً از صفحه اسکرین‌شات بگیرید یا آن را ذخیره فرمایید.');
+                alert('امکان چاپ مستقیم در این دستگاه فراهم نیست. لطفاً از صفحه اسکرین‌شات بگیرید.');
             }
         }
 
@@ -731,9 +754,15 @@
                             <span class="${rem > 0 ? 'text-amber-400 font-bold' : 'text-emerald-400'}">
                                 ${rem > 0 ? 'مانده بدهی: ' + rem.toLocaleString('fa-IR') + ' تومان' : 'تسویه'}
                             </span>
-                            <button onclick="printInvoice(${Number(inv.id)})" class="text-emerald-400 hover:underline text-[11px]">
-                                مشاهده و چاپ
-                            </button>
+                            <div class="flex gap-2 items-center">
+                                <button onclick="printInvoice(${Number(inv.id)})" class="text-emerald-400 hover:underline text-[11px]">
+                                    چاپ
+                                </button>
+                                <span class="text-gray-600">|</span>
+                                <button onclick="deleteSingleInvoice(${Number(inv.id)}, event)" class="text-red-400 hover:underline text-[11px]">
+                                    حذف
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -835,11 +864,18 @@
                                 ${remainingHTML}
                             </div>
                         </div>
-                        <button onclick="printInvoice(${Number(invoice.id)})"
-                                type="button"
-                                class="px-3 py-1.5 bg-emerald-950 hover:bg-emerald-900 border border-emerald-600/40 text-emerald-300 rounded-lg text-xs font-bold transition">
-                            مشاهده / چاپ
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button onclick="printInvoice(${Number(invoice.id)})"
+                                    type="button"
+                                    class="px-3 py-1.5 bg-emerald-950 hover:bg-emerald-900 border border-emerald-600/40 text-emerald-300 rounded-lg text-xs font-bold transition">
+                                چاپ
+                            </button>
+                            <button onclick="deleteSingleInvoice(${Number(invoice.id)}, event)"
+                                    type="button"
+                                    class="px-2.5 py-1.5 bg-red-950/60 hover:bg-red-900 border border-red-600/40 text-red-300 rounded-lg text-xs font-bold transition">
+                                حذف
+                            </button>
+                        </div>
                     </div>
                 `;
             });
