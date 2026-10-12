@@ -796,30 +796,25 @@
     if (!element) return;
 
     try {
-        // ۱. تبدیل فاکتور به فرمت Base64 (عکس باکیفیت)
+        // ۱. تبدیل فاکتور به عکس با کیفیت
         const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-        const base64Data = canvas.toDataURL('image/png');
+        const dataUrl = canvas.toDataURL('image/png');
 
-        // ۲. اگر پلاگین کاپاسیتور در دسترس باشد
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share) {
-            await window.Capacitor.Plugins.Share.share({
-                title: 'فاکتور فروش',
-                text: 'فاکتور فروش صادر شده',
-                url: base64Data,
-                dialogTitle: 'چاپ یا اشتراک‌گذاری فاکتور'
-            });
-        } else if (navigator.share) {
-            // حالت رزرو وب
-            await navigator.share({
-                title: 'فاکتور فروش',
-                text: 'فاکتور فروش صادر شده',
-                url: window.location.href
-            });
-        }
-    } catch (error) {
-        alert("خطا در باز کردن منوی چاپ: " + error.message);
+        // ۲. ساخت لینک دانلود
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = 'factor-' + Date.now() + '.png';
+        
+        // ۳. اجرای دانلود روی گوشی
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+    } catch (err) {
+        alert("خطا: " + err.message);
     }
 }
+
 
 
 
