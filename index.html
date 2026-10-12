@@ -790,18 +790,40 @@
             document.getElementById('invoicePreviewModal').classList.add('hidden');
         }
 
-               async function triggerNativePrint() {
+              function triggerNativePrint() {
             const htmlContent = document.getElementById('printArea').innerHTML;
-            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Printer) {
+            let printFrame = document.getElementById('print_frame');
+            if (!printFrame) {
+                printFrame = document.createElement('iframe');
+                printFrame.id = 'print_frame';
+                printFrame.style.position = 'fixed';
+                printFrame.style.right = '0';
+                printFrame.style.bottom = '0';
+                printFrame.style.width = '0';
+                printFrame.style.height = '0';
+                printFrame.style.border = '0';
+                document.body.appendChild(printFrame);
+            }
+            
+            const frameDoc = printFrame.contentWindow || printFrame.contentDocument;
+            const doc = printFrame.contentDocument || printFrame.contentWindow.document;
+            
+            doc.open();
+            doc.write('<!DOCTYPE html><html dir="rtl"><head><title>فاکتور</title>');
+            doc.write('<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">');
+            doc.write('</head><body class="p-4">' + htmlContent + '</body></html>');
+            doc.close();
+            
+            setTimeout(() => {
                 try {
-                    await window.Capacitor.Plugins.Printer.print({ html: htmlContent });
+                    frameDoc.focus();
+                    frameDoc.print();
                 } catch (e) {
                     window.print();
                 }
-            } else {
-                window.print();
-            }
+            }, 500);
         }
+
 
 
         function openCustomerDetail(customerName) {
