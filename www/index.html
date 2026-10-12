@@ -791,27 +791,42 @@
             document.getElementById('invoicePreviewModal').classList.add('hidden');
         }
 
-          function triggerNativePrint() {
+        async function triggerNativePrint() {
     const element = document.getElementById('printArea');
     if (!element) return;
 
-    if (typeof html2pdf !== 'undefined') {
-        const opt = {
-            margin: 10,
-            filename: 'factor.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-        
-        html2pdf().set(opt).from(element).save().catch(err => {
-            console.log("Fallback to window.print due to error:", err);
-            window.print();
-        });
-    } else {
-        window.print();
+    // بررسی قابلیت اشتراک‌گذاری در اندروید
+    if (navigator.share && window.html2pdf) {
+        try {
+            const pdfBlob = await html2pdf().set({
+                margin: 10,
+                filename: 'factor.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            }).from(element).outputPdf('blob');
+
+            const file = new File([pdfBlob], "factor.pdf", { type: "application/pdf" });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'فاکتور فروش',
+                    text: 'فاکتور صادر شده'
+                });
+                return;
+            }
+        } catch (e) {
+            console.log("Share error:", e);
+        }
+    }
+
+    // در کامپیوتر یا مواقعی که شیر پشتیبانی نشود، مستقیماً دانلود/سیو می‌کند
+    if (window.html2pdf) {
+        html2pdf().from(element).save('factor.pdf');
     }
 }
+
 
 
         function openCustomerDetail(customerName) {
