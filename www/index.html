@@ -791,13 +791,13 @@
             document.getElementById('invoicePreviewModal').classList.add('hidden');
         }
 
-        async function triggerNativePrint() {
+       async function triggerNativePrint() {
     const element = document.getElementById('printArea');
     if (!element) return;
 
-    // بررسی قابلیت اشتراک‌گذاری در اندروید
-    if (navigator.share && window.html2pdf) {
+    if (window.html2pdf && navigator.share) {
         try {
+            // ساخت فایل PDF استاندارد از فاکتور
             const pdfBlob = await html2pdf().set({
                 margin: 10,
                 filename: 'factor.pdf',
@@ -808,26 +808,19 @@
 
             const file = new File([pdfBlob], "factor.pdf", { type: "application/pdf" });
 
+            // باز کردن منوی سیستم‌عامل اندروید برای چاپ یا ارسال فاکتور
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 await navigator.share({
                     files: [file],
                     title: 'فاکتور فروش',
-                    text: 'فاکتور صادر شده'
+                    text: 'فاکتور صادر شده از فاکتوریت'
                 });
-                return;
             }
-        } catch (e) {
-            console.log("Share error:", e);
+        } catch (err) {
+            console.error("خطا در اشتراک‌گذاری فاکتور:", err);
         }
     }
-
-    // در کامپیوتر یا مواقعی که شیر پشتیبانی نشود، مستقیماً دانلود/سیو می‌کند
-    if (window.html2pdf) {
-        html2pdf().from(element).save('factor.pdf');
-    }
 }
-
-
 
         function openCustomerDetail(customerName) {
             currentSelectedCustomer = customerName;
