@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="capacitor.js"></script>
 
     <style>
         * {
@@ -792,35 +793,21 @@
         }
 
        async function triggerNativePrint() {
-    const element = document.getElementById('printArea');
-    if (!element) return;
+    const printArea = document.getElementById('printArea');
+    if (!printArea) return;
 
-    if (window.html2pdf && navigator.share) {
-        try {
-            // ساخت فایل PDF استاندارد از فاکتور
-            const pdfBlob = await html2pdf().set({
-                margin: 10,
-                filename: 'factor.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            }).from(element).outputPdf('blob');
-
-            const file = new File([pdfBlob], "factor.pdf", { type: "application/pdf" });
-
-            // باز کردن منوی سیستم‌عامل اندروید برای چاپ یا ارسال فاکتور
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    files: [file],
-                    title: 'فاکتور فروش',
-                    text: 'فاکتور صادر شده از فاکتوریت'
-                });
-            }
-        } catch (err) {
-            console.error("خطا در اشتراک‌گذاری فاکتور:", err);
-        }
+    try {
+        await Capacitor.Plugins.Printer.print({
+            content: printArea.innerHTML,
+            name: 'فاکتور'
+        });
+    } catch (err) {
+        alert("خطا در چاپ: " + err.message);
     }
 }
+
+
+
 
         function openCustomerDetail(customerName) {
             currentSelectedCustomer = customerName;

@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="capacitor.js"></script>
 
     <style>
         * {
@@ -791,30 +792,19 @@
             document.getElementById('invoicePreviewModal').classList.add('hidden');
         }
 
-        async function triggerNativePrint() {
-    const element = document.getElementById('printArea');
-    if (!element) return;
+       async function triggerNativePrint() {
+    const printArea = document.getElementById('printArea');
+    if (!printArea) return;
 
     try {
-        // ۱. تبدیل فاکتور به عکس با کیفیت
-        const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-        const dataUrl = canvas.toDataURL('image/png');
-
-        // ۲. ساخت لینک دانلود
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = 'factor-' + Date.now() + '.png';
-        
-        // ۳. اجرای دانلود روی گوشی
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
+        await Capacitor.Plugins.Printer.print({
+            content: printArea.innerHTML,
+            name: 'فاکتور'
+        });
     } catch (err) {
-        alert("خطا: " + err.message);
+        alert("خطا در چاپ: " + err.message);
     }
 }
-
 
 
 
