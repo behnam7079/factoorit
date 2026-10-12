@@ -791,26 +791,36 @@
             document.getElementById('invoicePreviewModal').classList.add('hidden');
         }
 
-                       function triggerNativePrint() {
-            const element = document.getElementById('printArea');
-            if (!element) return;
+       async function triggerNativePrint() {
+    const element = document.getElementById('printArea');
+    if (!element) return;
 
-            const opt = {
-                margin:       10,
-                filename:     'factor.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
+    if (window.html2pdf && navigator.share) {
+        try {
+            // ساخت فایل PDF استاندارد از فاکتور
+            const pdfBlob = await html2pdf().set({
+                margin: 10,
+                filename: 'factor.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            }).from(element).outputPdf('blob');
 
-            if (window.html2pdf) {
-                html2pdf().set(opt).from(element).save();
-            } else {
-                window.print();
+            const file = new File([pdfBlob], "factor.pdf", { type: "application/pdf" });
+
+            // باز کردن منوی سیستم‌عامل اندروید برای چاپ یا ارسال فاکتور
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'فاکتور فروش',
+                    text: 'فاکتور صادر شده از فاکتوریت'
+                });
             }
+        } catch (err) {
+            console.error("خطا در اشتراک‌گذاری فاکتور:", err);
         }
-
-
+    }
+}
 
         function openCustomerDetail(customerName) {
             currentSelectedCustomer = customerName;

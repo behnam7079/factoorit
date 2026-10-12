@@ -795,32 +795,32 @@
     const element = document.getElementById('printArea');
     if (!element) return;
 
-    if (window.html2pdf && navigator.share) {
-        try {
-            // ساخت فایل PDF استاندارد از فاکتور
-            const pdfBlob = await html2pdf().set({
-                margin: 10,
-                filename: 'factor.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            }).from(element).outputPdf('blob');
+    try {
+        // ۱. تبدیل فاکتور به فرمت Base64 (عکس باکیفیت)
+        const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+        const base64Data = canvas.toDataURL('image/png');
 
-            const file = new File([pdfBlob], "factor.pdf", { type: "application/pdf" });
-
-            // باز کردن منوی سیستم‌عامل اندروید برای چاپ یا ارسال فاکتور
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    files: [file],
-                    title: 'فاکتور فروش',
-                    text: 'فاکتور صادر شده از فاکتوریت'
-                });
-            }
-        } catch (err) {
-            console.error("خطا در اشتراک‌گذاری فاکتور:", err);
+        // ۲. اگر پلاگین کاپاسیتور در دسترس باشد
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share) {
+            await window.Capacitor.Plugins.Share.share({
+                title: 'فاکتور فروش',
+                text: 'فاکتور فروش صادر شده',
+                url: base64Data,
+                dialogTitle: 'چاپ یا اشتراک‌گذاری فاکتور'
+            });
+        } else if (navigator.share) {
+            // حالت رزرو وب
+            await navigator.share({
+                title: 'فاکتور فروش',
+                text: 'فاکتور فروش صادر شده',
+                url: window.location.href
+            });
         }
+    } catch (error) {
+        alert("خطا در باز کردن منوی چاپ: " + error.message);
     }
 }
+
 
 
         function openCustomerDetail(customerName) {

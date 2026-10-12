@@ -1,5 +1,9 @@
 [
 	{
+		"pkg": "@capacitor/share",
+		"classpath": "com.capacitorjs.plugins.share.SharePlugin"
+	},
+	{
 		"pkg": "@capgo/capacitor-printer",
 		"classpath": "com.capgo.printer.PrinterPlugin"
 	}
