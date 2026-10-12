@@ -271,7 +271,24 @@
                 <div class="text-left">کل مانده بدهی: <span id="custDetailTotalBalance" class="font-bold text-amber-400">۰ تومان</span></div>
             </div>
 
-            <div class="text-xs font-bold text-gray-400 mt-2">لیست فاکتورها و پرداختی‌ها:</div>
+            <!-- بخش جدید: ثبت دریافتی جدید از مشتری -->
+            <div class="bg-black/30 border border-emerald-800/60 rounded-xl p-3 space-y-2">
+                <label class="text-xs font-bold text-emerald-400 block">💵 ثبت دریافتی / وصول طلب از این مشتری:</label>
+                <div class="flex gap-2">
+                    <input type="text"
+                           inputmode="numeric"
+                           id="customerPaymentAmount"
+                           placeholder="مبلغ پرداختی (تومان)"
+                           class="emerald-input flex-1 rounded-xl p-2 text-xs font-bold">
+                    <button onclick="submitCustomerPayment()"
+                            type="button"
+                            class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl text-xs transition">
+                        ثبت دریافتی
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-xs font-bold text-gray-400 mt-1">لیست فاکتورها و پرداختی‌ها:</div>
             <div id="custDetailList" class="overflow-y-auto space-y-2 pr-1 flex-1"></div>
 
             <!-- دکمه‌های مودال -->
@@ -508,7 +525,7 @@
             document.getElementById('payModal').classList.add('hidden');
         }
 
-        // مرحله سوم: امکان حذف کامل مشتری
+        // امکان حذف کامل مشتری
         function deleteCustomer(customerName) {
             if (!customerName || !confirm(`آیا مطمئن هستید تمام فاکتورهای "${customerName}" برای همیشه حذف شوند؟`)) {
                 return;
@@ -521,7 +538,7 @@
             alert('✅ مشتری و تمامی فاکتورهای او با موفقیت حذف شدند.');
         }
 
-        // مرحله سوم: امکان حذف یک فاکتور تکی
+        // امکان حذف یک فاکتور تکی
         function deleteSingleInvoice(id, event) {
             if (event) event.stopPropagation();
             if (!confirm('آیا از حذف این فاکتور مطمئن هستید؟')) return;
@@ -530,17 +547,15 @@
             invoices = invoices.filter(inv => Number(inv.id) !== Number(id));
             localStorage.setItem('ft_invoices', JSON.stringify(invoices));
             
-            // اگر مودال ریز حساب باز بود، آن را هم آپدیت یا بسته کن
             closeCustomerDetailModal();
             render();
             alert('✅ فاکتور با موفقیت حذف شد.');
         }
 
-        // مرحله اول: زدن فاکتور جدید برای همان مشتری از طریق کلیک روی نامش
+        // زدن فاکتور جدید برای همان مشتری از طریق ریز حساب
         function createNewInvoiceForCustomer() {
             const customerName = currentSelectedCustomer;
             const invoices = getInvoices();
-            // آخرین شماره تماس ثبت شده برای این مشتری را پیدا میکنیم
             const found = invoices.find(inv => (inv.customer || '').trim() === customerName.trim());
             const phone = found ? (found.phone || '') : '';
 
@@ -548,6 +563,55 @@
             switchTab('invoices');
             document.getElementById('custName').value = customerName;
             document.getElementById('custPhone').value = phone;
+        }
+
+        // تابع جدید: ثبت دریافتی از مشتری و کسر از مانده بدهی
+        function submitCustomerPayment() {
+            const payInput = document.getElementById('customerPaymentAmount');
+            const amount = toNumber(payInput.value);
+
+            if (amount <= 0) {
+                alert('⚠️ لطفاً مبلغ دریافتی را وارد کنید.');
+                payInput.focus();
+                return;
+            }
+
+            let invoices = getInvoices();
+            const customerInvoices = invoices.filter(inv => (inv.customer || 'بدون نام').trim() === currentSelectedCustomer.trim());
+            const totalRemaining = customerInvoices.reduce((sum, inv) => sum + toNumber(inv.remaining), 0);
+
+            if (totalRemaining <= 0) {
+                alert('این مشتری هیچ بدهی ثبت‌شده‌ای ندارد.');
+                return;
+            }
+
+            let remainingToDeduct = amount;
+
+            // کسر مبلغ از قدیمی‌ترین فاکتورها تا جدیدترین
+            for (let i = invoices.length - 1; i >= 0; i--) {
+                const inv = invoices[i];
+                if ((inv.customer || 'بدون نام').trim() === currentSelectedCustomer.trim()) {
+                    let curRem = toNumber(inv.remaining);
+                    if (curRem > 0) {
+                        if (remainingToDeduct >= curRem) {
+                            remainingToDeduct -= curRem;
+                            inv.paid = toNumber(inv.paid || 0) + curRem;
+                            inv.remaining = 0;
+                        } else {
+                            inv.paid = toNumber(inv.paid || 0) + remainingToDeduct;
+                            inv.remaining = curRem - remainingToDeduct;
+                            remainingToDeduct = 0;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            localStorage.setItem('ft_invoices', JSON.stringify(invoices));
+            payInput.value = '';
+            openCustomerDetail(currentSelectedCustomer);
+            render();
+            alert('✅ مبلغ دریافتی با موفقیت ثبت شد و از بدهی کسر گردید.');
         }
 
         function saveInvoice() {
@@ -689,7 +753,6 @@
             `;
         }
 
-        // مرحله دوم: اصلاح تابع چاپ برای نمایش کامل در وب‌ویو و موبایل
         function printInvoice(id) {
             const invoices = getInvoices();
             const invoice = invoices.find(item => Number(item.id) === Number(id));
@@ -701,7 +764,6 @@
             document.getElementById('invoicePreviewContent').innerHTML = html;
             document.getElementById('invoicePreviewModal').classList.remove('hidden');
 
-            // مقداردهی به ناحیه پرینت سراسری
             document.getElementById('printArea').innerHTML = html;
         }
 
@@ -710,16 +772,14 @@
         }
 
         function triggerNativePrint() {
-            // اگر برنامه داخل اندروید با پل ارتباطی باشد
             if (window.AndroidBridge && typeof window.AndroidBridge.printHtml === 'function') {
                 window.AndroidBridge.printHtml(document.getElementById('printArea').innerHTML);
                 return;
             }
-            // حالت استاندارد مرورگر و وب‌ویو
             try {
                 window.print();
             } catch (e) {
-                alert('امکان چاپ مستقیم در این دستگاه فراهم نیست. لطفاً از صفحه اسکرین‌شات بگیرید.');
+                alert('امکان چاپ مستقیم در این دستگاه فراهم نیست.');
             }
         }
 
