@@ -268,7 +268,7 @@
 
             <div class="bg-black/40 rounded-xl p-3 border border-emerald-900 grid grid-cols-2 gap-2 text-xs">
                 <div>تعداد کل فاکتورها: <span id="custDetailTotalInvoices" class="font-bold text-white">۰</span></div>
-                <div class="text-left">کل مانده بدهی: <span id="custDetailTotalBalance" class="font-bold text-amber-400">۰ تومان</span></div>
+                <div class="text-left">وضعیت حساب: <span id="custDetailTotalBalance" class="font-bold text-amber-400">۰ تومان</span></div>
             </div>
 
             <!-- بخش جدید: ثبت دریافتی جدید از مشتری -->
@@ -565,7 +565,7 @@
             document.getElementById('custPhone').value = phone;
         }
 
-        // تابع جدید: ثبت دریافتی از مشتری و کسر از مانده بدهی
+        // تابع جدید: ثبت دریافتی از مشتری و کسر از مانده بدهی / لحاظ بستانکاری
         function submitCustomerPayment() {
             const payInput = document.getElementById('customerPaymentAmount');
             const amount = toNumber(payInput.value);
@@ -578,10 +578,9 @@
 
             let invoices = getInvoices();
             const customerInvoices = invoices.filter(inv => (inv.customer || 'بدون نام').trim() === currentSelectedCustomer.trim());
-            const totalRemaining = customerInvoices.reduce((sum, inv) => sum + toNumber(inv.remaining), 0);
 
-            if (totalRemaining <= 0) {
-                alert('این مشتری هیچ بدهی ثبت‌شده‌ای ندارد.');
+            if (customerInvoices.length === 0) {
+                alert('فاکتوری برای این مشتری پیدا نشد.');
                 return;
             }
 
@@ -607,11 +606,23 @@
                 }
             }
 
+            // اگر مبلغ پرداختی بیشتر از کل بدهی‌ها بود، مازاد به آخرین فاکتور واریز شده و بستانکار می‌شود
+            if (remainingToDeduct > 0) {
+                for (let i = 0; i < invoices.length; i++) {
+                    const inv = invoices[i];
+                    if ((inv.customer || 'بدون نام').trim() === currentSelectedCustomer.trim()) {
+                        inv.paid = toNumber(inv.paid || 0) + remainingToDeduct;
+                        inv.remaining = toNumber(inv.total) - toNumber(inv.paid);
+                        break;
+                    }
+                }
+            }
+
             localStorage.setItem('ft_invoices', JSON.stringify(invoices));
             payInput.value = '';
             openCustomerDetail(currentSelectedCustomer);
             render();
-            alert('✅ مبلغ دریافتی با موفقیت ثبت شد و از بدهی کسر گردید.');
+            alert('✅ مبلغ دریافتی با موفقیت ثبت شد.');
         }
 
         function saveInvoice() {
@@ -649,7 +660,7 @@
 
             let paidAmount = toNumber(document.getElementById('paidAmount').value);
             if (paidAmount < 0) paidAmount = 0;
-            const remaining = Math.max(0, total - paidAmount);
+            const remaining = total - paidAmount;
 
             const now = new Date();
             const dateText = new Intl.DateTimeFormat('fa-IR', {
@@ -688,6 +699,15 @@
             const total = toNumber(invoice.total);
             const paid = toNumber(invoice.paid || 0);
             const remaining = toNumber(invoice.remaining);
+
+            let statusHTML = '';
+            if (remaining > 0) {
+                statusHTML = `<span>مانده بدهی:</span><span>${remaining.toLocaleString('fa-IR')} تومان</span>`;
+            } else if (remaining < 0) {
+                statusHTML = `<span>بستانکار:</span><span>${Math.abs(remaining).toLocaleString('fa-IR')} تومان</span>`;
+            } else {
+                statusHTML = `<span>وضعیت:</span><span>تسویه کامل</span>`;
+            }
 
             let rows = '';
             (invoice.items || []).forEach((item, index) => {
@@ -745,8 +765,7 @@
                             <strong>${paid.toLocaleString('fa-IR')} تومان</strong>
                         </div>
                         <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:12px; color:${remaining > 0 ? '#b91c1c' : '#15803d'}; border-top:1px dashed #ccc; padding-top:4px;">
-                            <span>مانده بدهی:</span>
-                            <span>${remaining > 0 ? remaining.toLocaleString('fa-IR') + ' تومان' : 'تسویه کامل'}</span>
+                            ${statusHTML}
                         </div>
                     </div>
                 </div>
@@ -800,6 +819,16 @@
                 const paid = toNumber(inv.paid || 0);
                 totalRem += rem;
 
+                let badgeText = 'تسویه';
+                let badgeClass = 'text-emerald-400';
+                if (rem > 0) {
+                    badgeText = 'مانده بدهی: ' + rem.toLocaleString('fa-IR') + ' تومان';
+                    badgeClass = 'text-amber-400 font-bold';
+                } else if (rem < 0) {
+                    badgeText = 'بستانکار: ' + Math.abs(rem).toLocaleString('fa-IR') + ' تومان';
+                    badgeClass = 'text-teal-400 font-bold';
+                }
+
                 listHTML += `
                     <div class="bg-black/30 border border-emerald-950 p-2.5 rounded-xl space-y-1">
                         <div class="flex justify-between items-center text-xs">
@@ -811,8 +840,8 @@
                             <span>پرداختی: ${paid.toLocaleString('fa-IR')} تومان</span>
                         </div>
                         <div class="flex justify-between items-center pt-1 border-t border-emerald-900/30 text-xs">
-                            <span class="${rem > 0 ? 'text-amber-400 font-bold' : 'text-emerald-400'}">
-                                ${rem > 0 ? 'مانده بدهی: ' + rem.toLocaleString('fa-IR') + ' تومان' : 'تسویه'}
+                            <span class="${badgeClass}">
+                                ${badgeText}
                             </span>
                             <div class="flex gap-2 items-center">
                                 <button onclick="printInvoice(${Number(inv.id)})" class="text-emerald-400 hover:underline text-[11px]">
@@ -831,7 +860,20 @@
             document.getElementById('custDetailTitle').innerText = 'ریز صورت‌حساب: ' + customerName;
             document.getElementById('custDetailPhone').innerText = 'شماره تماس: ' + phone;
             document.getElementById('custDetailTotalInvoices').innerText = customerInvoices.length.toLocaleString('fa-IR');
-            document.getElementById('custDetailTotalBalance').innerText = totalRem.toLocaleString('fa-IR') + ' تومان';
+            
+            let totalBalanceDisplay = 'تسویه';
+            let totalBalanceClass = 'text-emerald-400';
+            if (totalRem > 0) {
+                totalBalanceDisplay = totalRem.toLocaleString('fa-IR') + ' تومان (بدهکار)';
+                totalBalanceClass = 'text-amber-400';
+            } else if (totalRem < 0) {
+                totalBalanceDisplay = Math.abs(totalRem).toLocaleString('fa-IR') + ' تومان (بستانکار)';
+                totalBalanceClass = 'text-teal-400';
+            }
+            const balEl = document.getElementById('custDetailTotalBalance');
+            balEl.innerText = totalBalanceDisplay;
+            balEl.className = 'font-bold ' + totalBalanceClass;
+
             document.getElementById('custDetailList').innerHTML = listHTML;
 
             document.getElementById('customerDetailModal').classList.remove('hidden');
@@ -909,9 +951,12 @@
                 const remaining = toNumber(invoice.remaining);
                 const customerName = invoice.customer || 'بدون نام';
 
-                const remainingHTML = remaining > 0
-                    ? `<span class="text-amber-400 font-bold">مانده: ${remaining.toLocaleString('fa-IR')} تومان</span>`
-                    : '<span class="text-emerald-400">تسویه</span>';
+                let remainingHTML = '<span class="text-emerald-400">تسویه</span>';
+                if (remaining > 0) {
+                    remainingHTML = `<span class="text-amber-400 font-bold">مانده: ${remaining.toLocaleString('fa-IR')} تومان</span>`;
+                } else if (remaining < 0) {
+                    remainingHTML = `<span class="text-teal-400 font-bold">بستانکار: ${Math.abs(remaining).toLocaleString('fa-IR')} تومان</span>`;
+                }
 
                 invoiceList.innerHTML += `
                     <div class="emerald-card p-3.5 rounded-xl flex justify-between items-center">
@@ -972,8 +1017,16 @@
             names.forEach(name => {
                 const customer = customers[name];
                 const rem = customer.totalRemaining;
-                const balanceHTML = rem > 0 ? rem.toLocaleString('fa-IR') + ' بدهکار' : 'تسویه';
-                const balanceClass = rem > 0 ? 'text-amber-400' : 'text-emerald-400';
+                
+                let balanceHTML = 'تسویه';
+                let balanceClass = 'text-emerald-400';
+                if (rem > 0) {
+                    balanceHTML = rem.toLocaleString('fa-IR') + ' بدهکار';
+                    balanceClass = 'text-amber-400';
+                } else if (rem < 0) {
+                    balanceHTML = Math.abs(rem).toLocaleString('fa-IR') + ' بستانکار';
+                    balanceClass = 'text-teal-400';
+                }
 
                 customerList.innerHTML += `
                     <div onclick="openCustomerDetail('${escapeHTML(name)}')"
@@ -1013,7 +1066,10 @@
 
             document.getElementById('invoiceCountText').innerText = invoices.length.toLocaleString('fa-IR');
 
-            const totalRemaining = invoices.reduce((acc, inv) => acc + toNumber(inv.remaining), 0);
+            const totalRemaining = invoices.reduce((acc, inv) => {
+                const rem = toNumber(inv.remaining);
+                return acc + (rem > 0 ? rem : 0);
+            }, 0);
             document.getElementById('totalReceivable').innerText = Math.round(totalRemaining).toLocaleString('fa-IR') + ' تومان';
 
             renderInvoices();
