@@ -790,17 +790,19 @@
             document.getElementById('invoicePreviewModal').classList.add('hidden');
         }
 
-        function triggerNativePrint() {
-            if (window.AndroidBridge && typeof window.AndroidBridge.printHtml === 'function') {
-                window.AndroidBridge.printHtml(document.getElementById('printArea').innerHTML);
-                return;
-            }
-            try {
+               async function triggerNativePrint() {
+            const htmlContent = document.getElementById('printArea').innerHTML;
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Printer) {
+                try {
+                    await window.Capacitor.Plugins.Printer.print({ html: htmlContent });
+                } catch (e) {
+                    window.print();
+                }
+            } else {
                 window.print();
-            } catch (e) {
-                alert('امکان چاپ مستقیم در این دستگاه فراهم نیست.');
             }
         }
+
 
         function openCustomerDetail(customerName) {
             currentSelectedCustomer = customerName;

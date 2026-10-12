@@ -1,1 +1,6 @@
-[]
+[
+	{
+		"pkg": "@capgo/capacitor-printer",
+		"classpath": "com.capgo.printer.PrinterPlugin"
+	}
+]
