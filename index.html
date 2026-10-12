@@ -792,20 +792,19 @@
             document.getElementById('invoicePreviewModal').classList.add('hidden');
         }
 
-       async function triggerNativePrint() {
+      async function triggerNativePrint() {
     const printArea = document.getElementById('printArea');
     if (!printArea) return;
 
     try {
         await Capacitor.Plugins.Printer.printHtml({
-            content: printArea.innerHTML,
+            html: printArea.innerHTML,
             name: 'فاکتور'
         });
     } catch (err) {
         alert("خطا در چاپ: " + err.message);
     }
 }
-
 
         function openCustomerDetail(customerName) {
             currentSelectedCustomer = customerName;

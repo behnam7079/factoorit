@@ -798,15 +798,13 @@
 
     try {
         await Capacitor.Plugins.Printer.printHtml({
-            content: printArea.innerHTML,
+            html: printArea.innerHTML,
             name: 'فاکتور'
         });
     } catch (err) {
         alert("خطا در چاپ: " + err.message);
     }
 }
-
-
 
 
 
