@@ -791,27 +791,27 @@
             document.getElementById('invoicePreviewModal').classList.add('hidden');
         }
 
-                    function triggerNativePrint() {
-            const element = document.getElementById('printArea');
-            if (!element) return;
+           function triggerNativePrint() {
+    const element = document.getElementById('printArea');
+    if (!element) return;
 
-            const opt = {
-                margin:       10,
-                filename:     'factor.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            if (window.html2pdf) {
-                html2pdf().set(opt).from(element).save();
-            } else {
-                window.print();
-            }
-        }
-
-
-
+    if (typeof html2pdf !== 'undefined') {
+        const opt = {
+            margin: 10,
+            filename: 'factor.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        
+        html2pdf().set(opt).from(element).save().catch(err => {
+            console.log("Fallback to window.print due to error:", err);
+            window.print();
+        });
+    } else {
+        window.print();
+    }
+}
 
         function openCustomerDetail(customerName) {
             currentSelectedCustomer = customerName;
