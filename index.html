@@ -797,7 +797,7 @@
     if (!printArea) return;
 
     try {
-        await Capacitor.Plugins.Printer.print({
+        await Capacitor.Plugins.Printer.printHtml({
             content: printArea.innerHTML,
             name: 'فاکتور'
         });
@@ -805,7 +805,6 @@
         alert("خطا در چاپ: " + err.message);
     }
 }
-
 
 
         function openCustomerDetail(customerName) {
