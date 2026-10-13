@@ -254,6 +254,34 @@
 
             <div id="customerList" class="space-y-2"></div>
         </div>
+            <!-- بخش پشتیبان‌گیری و بازیابی اطلاعات -->
+    <div class="emerald-card p-4 rounded-2xl border border-emerald-500/20 mt-6">
+      <div class="flex items-center gap-2 mb-3 text-emerald-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+        </svg>
+        <h3 class="font-bold text-sm">پشتیبان‌گیری از اطلاعات (بک‌آپ)</h3>
+      </div>
+      <p class="text-xs text-gray-400 mb-4 leading-relaxed">
+        برای جلوگیری از پاک شدن اطلاعات، فایل پشتیبان را دانلود کرده و در جای امن (تلگرام، واتساپ یا حافظه گوشی) ذخیره کنید.
+      </p>
+      
+      <div class="grid grid-cols-2 gap-3">
+        <!-- دکمه خروجی بک‌آپ -->
+        <button type="button" onclick="exportFactooritBackup()" class="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition-all active:scale-95">
+          <span>📥 دانلود بک‌آپ</span>
+        </button>
+
+        <!-- دکمه بازیابی -->
+        <button type="button" onclick="document.getElementById('backupFileInput').click()" class="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 rounded-xl text-xs font-bold transition-all active:scale-95">
+          <span>📤 بازیابی اطلاعات</span>
+        </button>
+      </div>
+
+      <!-- اینپوت مخفی انتخاب فایل -->
+      <input type="file" id="backupFileInput" accept=".json" class="hidden" onchange="importFactooritBackup(event)">
+    </div>
+
     </main>
 
     <!-- مودال ریز حساب مشتری -->
@@ -1086,6 +1114,67 @@
             calculateTotal();
             render();
         });
+        // تابع دانلود نسخه پشتیبان (Export Backup)
+function exportFactooritBackup() {
+  const invoices = localStorage.getItem('ft_invoices') || '[]';
+  const subExpiry = localStorage.getItem('ft_sub_expiry') || '';
+
+  const backupData = {
+    appName: "Factoorit",
+    version: "1.0",
+    exportDate: new Date().toISOString(),
+    ft_invoices: JSON.parse(invoices),
+    ft_sub_expiry: subExpiry
+  };
+
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+  const downloadAnchor = document.createElement('a');
+  
+  // ساخت نام فایل با تاریخ و ساعت شمسی/انگلیسی تمیز
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
+  downloadAnchor.setAttribute("href", dataStr);
+  downloadAnchor.setAttribute("download", `factoorit-backup-${dateStr}.json`);
+  
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
+}
+
+// تابع بازیابی نسخه پشتیبان (Import Backup)
+function importFactooritBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // بررسی صحت فایل بک‌آپ
+      if (!data.appName || data.appName !== "Factoorit" || !Array.isArray(data.ft_invoices)) {
+        alert("خطا: فایل انتخاب شده فایل پشتیبان معتبر فاکتوریت نیست!");
+        event.target.value = '';
+        return;
+      }
+
+      if (confirm(`فایل پشتیبان شامل ${data.ft_invoices.length} فاکتور است.\nآیا مطمئن هستید که می‌خواهید اطلاعات بازیابی و جایگزین شوند؟`)) {
+        localStorage.setItem('ft_invoices', JSON.stringify(data.ft_invoices));
+        if (data.ft_sub_expiry) {
+          localStorage.setItem('ft_sub_expiry', data.ft_sub_expiry);
+        }
+        alert("اطلاعات با موفقیت بازیابی شدند!");
+        location.reload(); // بازنشانی خودکار صفحه برای اعمال فوری
+      }
+    } catch (err) {
+      alert("خطا در خواندن فایل! لطفا از سالم بودن فایل JSON مطمئن شوید.");
+      console.error(err);
+    }
+    event.target.value = ''; // ریست کردن ورودی فایل
+  };
+  reader.readAsText(file);
+}
+
     </script>
 </body>
 </html>
