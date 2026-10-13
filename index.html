@@ -1136,13 +1136,34 @@
     const Filesystem = Cap?.Plugins?.Filesystem || window.Filesystem;
 
     if (Filesystem) {
-      await Filesystem.writeFile({
-        path: fileName,
-        data: jsonString,
-        directory: 'DOCUMENTS',
-        encoding: 'utf8'
-      });
-      alert(`✅ فایل پشتیبان با موفقیت در پوشه Documents ذخیره شد:\n${fileName}`);
+      // ۱. درخواست مجوز دسترسی به حافظه
+      if (typeof Filesystem.requestPermissions === 'function') {
+        try {
+          await Filesystem.requestPermissions();
+        } catch (pErr) {
+          console.warn('Permission request skipped:', pErr);
+        }
+      }
+
+      // ۲. تلاش برای ذخیره در DOCUMENTS؛ در صورت عدم دسترسی اندروید، ذخیره در DATA
+      try {
+        await Filesystem.writeFile({
+          path: fileName,
+          data: jsonString,
+          directory: 'DOCUMENTS',
+          encoding: 'utf8'
+        });
+        alert(`✅ فایل پشتیبان با موفقیت در پوشه Documents ذخیره شد:\n${fileName}`);
+      } catch (docErr) {
+        // پوشه جایگزین بدون نیاز به دسترسی سیستم
+        await Filesystem.writeFile({
+          path: fileName,
+          data: jsonString,
+          directory: 'DATA',
+          encoding: 'utf8'
+        });
+        alert(`✅ فایل پشتیبان در حافظه برنامه ذخیره شد:\n${fileName}`);
+      }
     } else {
       // حالت مرورگر معمولی
       const blob = new Blob([jsonString], { type: "application/json" });
@@ -1159,6 +1180,7 @@
     alert("خطا در ذخیره فایل پشتیبان: " + (err.message || err));
   }
 }
+
 
 
 // تابع بازیابی نسخه پشتیبان (Import Backup)
