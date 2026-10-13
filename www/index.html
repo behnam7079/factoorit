@@ -1116,32 +1116,54 @@
             calculateTotal();
             render();
         });
-        // تابع دانلود نسخه پشتیبان (Export Backup)
-function exportFactooritBackup() {
-  const invoices = localStorage.getItem('ft_invoices') || '[]';
-  const subExpiry = localStorage.getItem('ft_sub_expiry') || '';
+       async function exportFactooritBackup() {
+  try {
+    const invoices = localStorage.getItem('ft_invoices') || '[]';
+    const subExpiry = localStorage.getItem('ft_sub_expiry') || '';
 
-  const backupData = {
-    appName: "Factoorit",
-    version: "1.0",
-    exportDate: new Date().toISOString(),
-    ft_invoices: JSON.parse(invoices),
-    ft_sub_expiry: subExpiry
-  };
+    const backupData = {
+      appName: "Factoorit",
+      version: "1.0",
+      exportDate: new Date().toISOString(),
+      ft_invoices: JSON.parse(invoices),
+      ft_sub_expiry: subExpiry
+    };
 
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
-  const downloadAnchor = document.createElement('a');
-  
-  // ساخت نام فایل با تاریخ و ساعت شمسی/انگلیسی تمیز
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
-  downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", `factoorit-backup-${dateStr}.json`);
-  
-  document.body.appendChild(downloadAnchor);
-  downloadAnchor.click();
-  downloadAnchor.remove();
+    const jsonString = JSON.stringify(backupData, null, 2);
+    const now = new Date();
+    const fileName = `factoorit-backup-${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}.json`;
+
+    // تست اشتراک‌گذاری مستقیم در اندروید (Web Share API)
+    if (navigator.share && navigator.canShare) {
+      const file = new File([jsonString], fileName, { type: "application/json" });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "پشتیبان فاکتوریت",
+          text: "فایل پشتیبان فاکتورهای شما"
+        });
+        return;
+      }
+    }
+
+    // روش ذخیره و دانلود کلاسیک (برای مرورگر یا پشتیبانی‌نشده‌ها)
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.href = url;
+    downloadAnchor.download = fileName;
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    setTimeout(() => {
+      downloadAnchor.remove();
+      URL.revokeObjectURL(url);
+    }, 1000);
+  } catch (err) {
+    console.error(err);
+    alert("خطا در ایجاد بک‌آپ: " + err.message);
+  }
 }
+
 
 // تابع بازیابی نسخه پشتیبان (Import Backup)
 function importFactooritBackup(event) {
