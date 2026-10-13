@@ -1116,7 +1116,7 @@
             calculateTotal();
             render();
         });
-       async function exportFactooritBackup() {
+      async function exportFactooritBackup() {
   try {
     const invoices = localStorage.getItem('ft_invoices') || '[]';
     const subExpiry = localStorage.getItem('ft_sub_expiry') || '';
@@ -1133,34 +1133,32 @@
     const now = new Date();
     const fileName = `factoorit-backup-${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}.json`;
 
-    // تست اشتراک‌گذاری مستقیم در اندروید (Web Share API)
-    if (navigator.share && navigator.canShare) {
-      const file = new File([jsonString], fileName, { type: "application/json" });
-      if (navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: "پشتیبان فاکتوریت",
-          text: "فایل پشتیبان فاکتورهای شما"
-        });
-        return;
-      }
-    }
+    // بررسی حالت اپلیکیشن اندروید (Capacitor)
+    const Cap = window.Capacitor;
+    const Filesystem = Cap?.Plugins?.Filesystem || window.Filesystem;
 
-    // روش ذخیره و دانلود کلاسیک (برای مرورگر یا پشتیبانی‌نشده‌ها)
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.href = url;
-    downloadAnchor.download = fileName;
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    setTimeout(() => {
-      downloadAnchor.remove();
+    if (Filesystem) {
+      await Filesystem.writeFile({
+        path: fileName,
+        data: jsonString,
+        directory: 'DOCUMENTS',
+        encoding: 'utf8'
+      });
+      alert(`✅ فایل پشتیبان با موفقیت در پوشه Documents ذخیره شد:\n${fileName}`);
+    } else {
+      // حالت مرورگر معمولی
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
       URL.revokeObjectURL(url);
-    }, 1000);
+    }
   } catch (err) {
-    console.error(err);
-    alert("خطا در ایجاد بک‌آپ: " + err.message);
+    alert("خطا در ذخیره فایل پشتیبان: " + (err.message || err));
   }
 }
 
