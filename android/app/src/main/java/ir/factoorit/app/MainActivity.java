@@ -4,14 +4,13 @@ import android.os.Bundle;
 import android.webkit.JavascriptInterface;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultRegistryOwner;
-
 import com.getcapacitor.BridgeActivity;
 
 import ir.cafebazaar.poolakey.Payment;
 import ir.cafebazaar.poolakey.config.PaymentConfiguration;
 import ir.cafebazaar.poolakey.config.SecurityCheck;
 import ir.cafebazaar.poolakey.request.PurchaseRequest;
+import kotlin.Unit;
 
 public class MainActivity extends BridgeActivity {
 
@@ -59,25 +58,30 @@ public class MainActivity extends BridgeActivity {
                 );
 
                 payment.subscribeProduct(
-                        (ActivityResultRegistryOwner) MainActivity.this,
+                        getActivityResultRegistry(),
                         request,
-                        purchaseEntity -> {
-                            runOnUiThread(() -> {
-                                Toast.makeText(MainActivity.this, "پرداخت با موفقیت انجام شد", Toast.LENGTH_SHORT).show();
-                                if (getBridge() != null && getBridge().getWebView() != null) {
-                                    getBridge().getWebView().evaluateJavascript(
-                                            "if(window.onPaymentSuccess){ window.onPaymentSuccess(" + days + "); }",
-                                            null
-                                    );
-                                }
+                        callback -> {
+                            callback.purchaseSucceed(purchaseEntity -> {
+                                runOnUiThread(() -> {
+                                    Toast.makeText(MainActivity.this, "پرداخت با موفقیت انجام شد", Toast.LENGTH_SHORT).show();
+                                    if (getBridge() != null && getBridge().getWebView() != null) {
+                                        getBridge().getWebView().evaluateJavascript(
+                                                "if(window.onPaymentSuccess){ window.onPaymentSuccess(" + days + "); }",
+                                                null
+                                        );
+                                    }
+                                });
+                                return Unit.INSTANCE;
                             });
-                            return kotlin.Unit.INSTANCE;
-                        },
-                        throwable -> {
-                            runOnUiThread(() -> {
-                                Toast.makeText(MainActivity.this, "پرداخت انجام نشد یا لغو شد", Toast.LENGTH_SHORT).show();
+
+                            callback.purchaseFailed(throwable -> {
+                                runOnUiThread(() -> {
+                                    Toast.makeText(MainActivity.this, "پرداخت انجام نشد یا لغو شد", Toast.LENGTH_SHORT).show();
+                                });
+                                return Unit.INSTANCE;
                             });
-                            return kotlin.Unit.INSTANCE;
+
+                            return Unit.INSTANCE;
                         }
                 );
             });
