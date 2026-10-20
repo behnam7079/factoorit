@@ -4,12 +4,14 @@ import android.os.Bundle;
 import android.webkit.JavascriptInterface;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultRegistryOwner;
+
 import com.getcapacitor.BridgeActivity;
 
 import ir.cafebazaar.poolakey.Payment;
 import ir.cafebazaar.poolakey.config.PaymentConfiguration;
 import ir.cafebazaar.poolakey.config.SecurityCheck;
-import kotlin.Unit;
+import ir.cafebazaar.poolakey.request.PurchaseRequest;
 
 public class MainActivity extends BridgeActivity {
 
@@ -50,45 +52,34 @@ public class MainActivity extends BridgeActivity {
                     sku = "monthly";
                 }
 
-                payment.connect(connection -> {
-                    connection.connectionSucceed(() -> {
-                        connection.subscribeProduct(
-                                MainActivity.this,
-                                sku,
-                                null,
-                                purchaseResult -> {
-                                    purchaseResult.purchaseFlowBegan(() -> Unit.INSTANCE);
-                                    purchaseResult.purchaseSucceed(purchaseEntity -> {
-                                        runOnUiThread(() -> {
-                                            Toast.makeText(MainActivity.this, "پرداخت با موفقیت انجام شد", Toast.LENGTH_SHORT).show();
-                                            if (getBridge() != null && getBridge().getWebView() != null) {
-                                                getBridge().getWebView().evaluateJavascript(
-                                                        "if(window.onPaymentSuccess){ window.onPaymentSuccess(" + days + "); }",
-                                                        null
-                                                );
-                                            }
-                                        });
-                                        return Unit.INSTANCE;
-                                    });
-                                    purchaseResult.purchaseFailed(throwable -> {
-                                        runOnUiThread(() -> {
-                                            Toast.makeText(MainActivity.this, "پرداخت انجام نشد یا لغو شد", Toast.LENGTH_SHORT).show();
-                                        });
-                                        return Unit.INSTANCE;
-                                    });
-                                    return Unit.INSTANCE;
+                PurchaseRequest request = new PurchaseRequest(
+                        sku,
+                        null,
+                        null
+                );
+
+                payment.subscribeProduct(
+                        (ActivityResultRegistryOwner) MainActivity.this,
+                        request,
+                        purchaseEntity -> {
+                            runOnUiThread(() -> {
+                                Toast.makeText(MainActivity.this, "پرداخت با موفقیت انجام شد", Toast.LENGTH_SHORT).show();
+                                if (getBridge() != null && getBridge().getWebView() != null) {
+                                    getBridge().getWebView().evaluateJavascript(
+                                            "if(window.onPaymentSuccess){ window.onPaymentSuccess(" + days + "); }",
+                                            null
+                                    );
                                 }
-                        );
-                        return Unit.INSTANCE;
-                    });
-                    connection.connectionFailed(throwable -> {
-                        runOnUiThread(() -> {
-                            Toast.makeText(MainActivity.this, "خطا در اتصال به کافه‌بازار. لطفاً اپ بازار را بررسی کنید.", Toast.LENGTH_LONG).show();
-                        });
-                        return Unit.INSTANCE;
-                    });
-                    return Unit.INSTANCE;
-                });
+                            });
+                            return kotlin.Unit.INSTANCE;
+                        },
+                        throwable -> {
+                            runOnUiThread(() -> {
+                                Toast.makeText(MainActivity.this, "پرداخت انجام نشد یا لغو شد", Toast.LENGTH_SHORT).show();
+                            });
+                            return kotlin.Unit.INSTANCE;
+                        }
+                );
             });
         }
     }
