@@ -38,8 +38,11 @@ public class MainActivity extends BridgeActivity {
     public class WebAppInterface {
 
         @JavascriptInterface
-        public void buySubscription(final int days) {
+        public void buySubscription(final String planId, final int days, final long price) {
             runOnUiThread(() -> {
+                // پیام تست برای اینکه مطمئن شویم کلیک از وب به جاوا رسیده است
+                Toast.makeText(MainActivity.this, "تلاش برای خرید پلن: " + planId + " (" + days + " روزه)", Toast.LENGTH_SHORT).show();
+
                 final String sku;
                 if (days == 30) {
                     sku = "monthly";
