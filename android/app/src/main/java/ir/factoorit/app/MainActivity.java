@@ -53,7 +53,7 @@ public class MainActivity extends BridgeActivity {
                 payment.connect(connection -> {
                     connection.connectionSucceed(() -> {
                         connection.subscribeProduct(
-                                getActivity(),
+                                MainActivity.this,
                                 sku,
                                 null,
                                 purchaseResult -> {
