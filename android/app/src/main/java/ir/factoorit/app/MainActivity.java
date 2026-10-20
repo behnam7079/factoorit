@@ -22,7 +22,7 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        SecurityCheck securityCheck = RSA_KEY.isEmpty() 
+        SecurityCheck securityCheck = (RSA_KEY == null || RSA_KEY.isEmpty()) 
                 ? SecurityCheck.Disable.INSTANCE 
                 : new SecurityCheck.Enable(RSA_KEY);
 
@@ -39,7 +39,7 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void buySubscription(final int days) {
             runOnUiThread(() -> {
-                String sku;
+                final String sku;
                 if (days == 30) {
                     sku = "monthly";
                 } else if (days == 180) {
@@ -51,37 +51,41 @@ public class MainActivity extends BridgeActivity {
                 }
 
                 payment.connect(connection -> {
-                    connection.subscribeProduct(
-                            getActivity(),
-                            sku,
-                            null,
-                            purchaseResult -> {
-                                purchaseResult.purchaseFlowBegan(() -> Unit.INSTANCE);
-                                purchaseResult.purchaseSucceed(purchaseEntity -> {
-                                    runOnUiThread(() -> {
-                                        Toast.makeText(MainActivity.this, "پرداخت با موفقیت انجام شد", Toast.LENGTH_SHORT).show();
-                                        if (getBridge() != null && getBridge().getWebView() != null) {
-                                            getBridge().getWebView().evaluateJavascript(
-                                                    "if(window.onPaymentSuccess){ window.onPaymentSuccess(" + days + "); }",
-                                                    null
-                                            );
-                                        }
+                    connection.connectionSucceed(() -> {
+                        connection.subscribeProduct(
+                                getActivity(),
+                                sku,
+                                null,
+                                purchaseResult -> {
+                                    purchaseResult.purchaseFlowBegan(() -> Unit.INSTANCE);
+                                    purchaseResult.purchaseSucceed(purchaseEntity -> {
+                                        runOnUiThread(() -> {
+                                            Toast.makeText(MainActivity.this, "پرداخت با موفقیت انجام شد", Toast.LENGTH_SHORT).show();
+                                            if (getBridge() != null && getBridge().getWebView() != null) {
+                                                getBridge().getWebView().evaluateJavascript(
+                                                        "if(window.onPaymentSuccess){ window.onPaymentSuccess(" + days + "); }",
+                                                        null
+                                                );
+                                            }
+                                        });
+                                        return Unit.INSTANCE;
+                                    });
+                                    purchaseResult.purchaseFailed(throwable -> {
+                                        runOnUiThread(() -> {
+                                            Toast.makeText(MainActivity.this, "پرداخت انجام نشد یا لغو شد", Toast.LENGTH_SHORT).show();
+                                        });
+                                        return Unit.INSTANCE;
                                     });
                                     return Unit.INSTANCE;
-                                });
-                                purchaseResult.purchaseFailed(throwable -> {
-                                    runOnUiThread(() -> {
-                                        Toast.makeText(MainActivity.this, "پرداخت انجام نشد یا لغو شد", Toast.LENGTH_SHORT).show();
-                                    });
-                                    return Unit.INSTANCE;
-                                });
-                                return Unit.INSTANCE;
-                            }
-                    );
-                    return Unit.INSTANCE;
-                }).getConnectionFailed().to(throwable -> {
-                    runOnUiThread(() -> {
-                        Toast.makeText(MainActivity.this, "خطا در اتصال به کافه‌بازار. لطفاً اپ بازار را بررسی کنید.", Toast.LENGTH_LONG).show();
+                                }
+                        );
+                        return Unit.INSTANCE;
+                    });
+                    connection.connectionFailed(throwable -> {
+                        runOnUiThread(() -> {
+                            Toast.makeText(MainActivity.this, "خطا در اتصال به کافه‌بازار. لطفاً اپ بازار را بررسی کنید.", Toast.LENGTH_LONG).show();
+                        });
+                        return Unit.INSTANCE;
                     });
                     return Unit.INSTANCE;
                 });
