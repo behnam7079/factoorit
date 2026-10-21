@@ -3,12 +3,29 @@ apply plugin: 'com.android.application'
 android {
     namespace = "ir.factoorit.app"
     compileSdk = rootProject.ext.compileSdkVersion
+
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId "ir.factoorit.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.1"
+        versionCode 1
+        versionName "1.0"
+        
+        def marketApplicationId = "ir.mservices.market"
+        def marketBindAddress = "ir.mservices.market.InAppBillingService.BIND"
+
+        manifestPlaceholders = [
+            marketApplicationId: marketApplicationId,
+            marketBindAddress: marketBindAddress,
+            marketPermission: "${marketApplicationId}.BILLING"
+        ]
+
+        buildConfigField "String", "IAB_PUBLIC_KEY", "\"MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1PBVkiA1xa7PdL1urzPi/2t7MXDtscC5XFnYWV/VZ+EFZdMH7YjScAZanO4864tmR+8Pv77OVh1mSZ7s+iNRv8WzwJiA41UzUB9UuUp3b5GXBhIjfd0yXjYJ7y8VM1K6h2jK5rTuOtyV9tpcc4WZ11TI1A3izhEYjDr02DejDCwIDAQAB\""
+
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -25,9 +42,6 @@ android {
 }
 
 repositories {
-    mavenCentral()
-    google()
-    maven { url 'https://jitpack.io' }
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
     }
@@ -39,10 +53,10 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
-    implementation 'com.github.cafebazaar:Poolakey:2.3.0'
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation 'com.github.myketstore:myket-billing-client:1.6'
     implementation project(':capacitor-cordova-android-plugins')
 }
 

@@ -1,17 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <!-- دسترسی پرداخت درون‌برنامه‌ای بازار -->
-    <uses-permission android:name="com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR" />
-    <uses-permission android:name="android.permission.INTERNET" />
-
-    <!-- برای اندروید ۱۱ به بالا الزامی است تا اپلیکیشن بازار شناسایی شود -->
-    <queries>
-        <package android:name="com.farsitel.bazaar" />
-        <intent>
-            <action android:name="ir.cafebazaar.pardakht.InAppBillingService.BIND" />
-        </intent>
-    </queries>
+    <!-- مجوزهای پرداخت درون‌برنامه‌ای مایکت -->
+    <uses-permission android:name="ir.mservices.market.BILLING" />
+    <uses-permission android:name="ir.mservices.market.permission.GET_INTENT_SENDER" />
 
     <application
         android:allowBackup="true"
@@ -42,4 +33,7 @@
         </provider>
     </application>
 
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
 </manifest>
