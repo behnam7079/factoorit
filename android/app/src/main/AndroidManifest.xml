@@ -3,6 +3,14 @@
     <!-- مجوزهای پرداخت درون‌برنامه‌ای مایکت -->
     <uses-permission android:name="ir.mservices.market.BILLING" />
     <uses-permission android:name="ir.mservices.market.permission.GET_INTENT_SENDER" />
+    <!-- برای اندروید 11 به بالا جهت تعامل با برنامه مایکت -->
+    <queries>
+        <package android:name="ir.mservices.market" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="myket" />
+        </intent>
+    </queries>
 
     <application
         android:allowBackup="true"

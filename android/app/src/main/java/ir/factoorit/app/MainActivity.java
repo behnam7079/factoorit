@@ -1,92 +1,96 @@
 package ir.factoorit.app;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
+import android.widget.Toast;
 
 import com.getcapacitor.BridgeActivity;
-import com.getcapacitor.JSObject;
-import com.getcapacitor.PluginCall;
-
-import org.json.JSONException;
-
-// ایمپورت‌های کتابخانه پرداخت مایکت
-import ir.factoorit.app.util.IabHelper;
-import ir.factoorit.app.util.IabResult;
-import ir.factoorit.app.util.Inventory;
-import ir.factoorit.app.util.Purchase;
 
 public class MainActivity extends BridgeActivity {
-    static final String TAG = "FactooritBilling";
-    IabHelper mHelper;
-    
-    // شناسه محصول یا اشتراک شما در پنل مایکت
-    static final String SKU_SUBSCRIPTION = "factoorit_sub_1"; 
-    static final int RC_REQUEST = 10001;
+    private static final String TAG = "FactooritBilling";
+    private static final int RC_MYKET_PAYMENT = 1001;
+
+    // متغیری برای نگه‌داری تعداد روزهای اشتراک خریداری شده
+    private int pendingDays = 0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // استفاده مستقیم از کلید عمومی واقعی شما که از پنل مایکت دریافت شد
-        String base64PublicKey = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4GNACBiQGQC1PBVkAi1xa7PdL1urzPi/2t7MXDtscC5XFnyWV/VZ+EFZdMH7YjScAzAn04864tmR+8Pv77OVh1mSZ7s+iNRv8WzwJiA41UzUB9UuP3b5GXBhljfd0yXjYJ7y8VM1K6h2jK5rTuOtYV9tpcc4WZ11TI1A3izhEYDr02DejDCwlDAQAB";
-
-        Log.d(TAG, "Initializing IAB helper...");
-        mHelper = new IabHelper(this, base64PublicKey);
-
-        // راه‌اندازی اتصال به مایکت
-        mHelper.startSetup(new IabHelper.OnIabSetupFinishedListener() {
-            @Override
-            public void onIabSetupFinished(IabResult result) {
-                if (!result.isSuccess()) {
-                    Log.e(TAG, "Problem setting up In-app Billing: " + result);
-                    return;
-                }
-                Log.d(TAG, "In-app Billing set up OK.");
-            }
-        });
+        // اضافه کردن پل ارتباطی جاوااسکریپت به WebView خازنی (Capacitor)
+        try {
+            WebView webView = getBridge().getWebView();
+            webView.addJavascriptInterface(new AndroidBridgeInterface(), "AndroidBridge");
+            Log.d(TAG, "AndroidBridge successfully attached to WebView");
+        } catch (Exception e) {
+            Log.e(TAG, "Error attaching AndroidBridge", e);
+        }
     }
 
-    // متد برای شروع فرآیند خرید که از جاوااسکریپت یا دکمه‌ها قابل صدا زدن است
-    public void startMyketPurchase() {
-        if (mHelper != null) {
-            try {
-                mHelper.launchPurchaseFlow(this, SKU_SUBSCRIPTION, RC_REQUEST, 
-                    new IabHelper.OnIabPurchaseFinishedListener() {
-                        @Override
-                        public void onIabPurchaseFinished(IabResult result, Purchase info) {
-                            if (result.isFailure()) {
-                                Log.e(TAG, "Error purchasing: " + result);
-                                return;
-                            }
-                            Log.d(TAG, "Purchase successful!");
-                            // اینجا می‌توانید وضعیت خرید را در اپلیکیشن ثبت کنید
-                        }
-                    }, "my-developer-payload");
-            } catch (Exception e) {
-                Log.e(TAG, "Exception launching purchase flow", e);
+    // این کلاسی است که فرانت‌اند مستقیماً به آن دسترسی دارد
+    public class AndroidBridgeInterface {
+
+        @JavascriptInterface
+        public void buySubscription(String planId, int days, int price) {
+            Log.d(TAG, "buySubscription called: plan=" + planId + ", days=" + days);
+            pendingDays = days;
+
+            // تبدیل شناسه فرانت‌اند به شناسه محصول مایکت
+            String sku = "monthly";
+            if (days >= 360 || "yearly".equalsIgnoreCase(planId)) {
+                sku = "yearly";
+            } else if (days >= 180 || "sixMonths".equalsIgnoreCase(planId)) {
+                sku = "sixMonths";
+            } else {
+                sku = "monthly";
             }
+
+            final String targetSku = sku;
+
+            // اجرای روی ترد اصلی UI
+            runOnUiThread(() -> {
+                try {
+                    // ارسال اینتنت خرید مستقیم به مایکت
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setData(Uri.parse("myket://inapp_payment?sku=" + targetSku + "&package_name=" + getPackageName()));
+                    intent.setPackage("ir.mservices.market");
+                    startActivityForResult(intent, RC_MYKET_PAYMENT);
+                } catch (Exception e) {
+                    Log.e(TAG, "Myket app not found or intent failed", e);
+                    Toast.makeText(MainActivity.this, "لطفاً برنامه مایکت را نصب یا به‌روزرسانی کنید.", Toast.LENGTH_LONG).show();
+                }
+            });
         }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (mHelper == null) super.onActivityResult(requestCode, resultCode, data);
+        super.onActivityResult(requestCode, resultCode, data);
 
-        // انتقال نتیجه خرید به IabHelper
-        if (!mHelper.handleActivityResult(requestCode, resultCode, data)) {
-            super.onActivityResult(requestCode, resultCode, data);
-        } else {
-            Log.d(TAG, "onActivityResult handled by IABUtil.");
-        }
-    }
+        if (requestCode == RC_MYKET_PAYMENT) {
+            if (resultCode == RESULT_OK) {
+                Log.d(TAG, "Payment was successful!");
+                Toast.makeText(this, "پرداخت با موفقیت انجام شد!", Toast.LENGTH_SHORT).show();
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        if (mHelper != null) {
-            mHelper.disposeWhenFinished();
-            mHelper = null;
+                // صدا زدن تابع موفقیت در فرانت‌اند
+                runOnUiThread(() -> {
+                    try {
+                        WebView webView = getBridge().getWebView();
+                        if (webView != null) {
+                            webView.evaluateJavascript("if(window.onPaymentSuccess){ window.onPaymentSuccess(" + pendingDays + "); }", null);
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error executing JS callback", e);
+                    }
+                });
+            } else {
+                Log.w(TAG, "Payment canceled or failed with resultCode: " + resultCode);
+                Toast.makeText(this, "پرداخت لغو شد یا انجام نشد.", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 }
