@@ -11,9 +11,9 @@ import androidx.annotation.Nullable;
 
 import com.getcapacitor.BridgeActivity;
 
-import ir.myket.billingclient.util.IabHelper;
-import ir.myket.billingclient.util.IabResult;
-import ir.myket.billingclient.util.Purchase;
+import ir.myket.billingplugin.util.IabHelper;
+import ir.myket.billingplugin.util.IabResult;
+import ir.myket.billingplugin.util.Purchase;
 
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "FactooritBilling";
