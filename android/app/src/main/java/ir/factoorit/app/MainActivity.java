@@ -26,7 +26,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // راه‌اندازی پل ارتباطی وب‌ویو به جاوا
+        // راه‌اندازی پل ارتباطی با وب‌ویو فرانت‌اند
         try {
             WebView webView = getBridge().getWebView();
             webView.addJavascriptInterface(new AndroidBridgeInterface(), "AndroidBridge");
@@ -35,7 +35,7 @@ public class MainActivity extends BridgeActivity {
             Log.e(TAG, "Error attaching AndroidBridge", e);
         }
 
-        // مقداردهی اولیه مایکت با کلید عمومی (RSA Key)
+        // مقداردهی اولیه مایکت با کلید عمومی (IAB_PUBLIC_KEY)
         String base64EncodedPublicKey = BuildConfig.IAB_PUBLIC_KEY;
         mHelper = new IabHelper(this, base64EncodedPublicKey);
         mHelper.enableDebugLogging(true, TAG);
@@ -76,8 +76,8 @@ public class MainActivity extends BridgeActivity {
                 }
 
                 try {
-                    // مایکت خرید اشتراکی را تحت launchSubscriptionPurchaseFlow هندل می‌کند
-                    mHelper.launchSubscriptionPurchaseFlow(
+                    // طبق داکیومنت مایکت: شروع فرایند خرید از طریق launchPurchaseFlow
+                    mHelper.launchPurchaseFlow(
                             MainActivity.this,
                             targetSku,
                             RC_REQUEST,
@@ -85,29 +85,20 @@ public class MainActivity extends BridgeActivity {
                             ""
                     );
                 } catch (Exception e) {
-                    Log.e(TAG, "Error launching purchase flow, falling back to one-time purchase", e);
-                    try {
-                        mHelper.launchPurchaseFlow(
-                                MainActivity.this,
-                                targetSku,
-                                RC_REQUEST,
-                                mPurchaseFinishedListener,
-                                ""
-                        );
-                    } catch (Exception ex) {
-                        Log.e(TAG, "Fatal error starting purchase", ex);
-                        Toast.makeText(MainActivity.this, "خطا در شروع فرایند خرید", Toast.LENGTH_SHORT).show();
-                    }
+                    Log.e(TAG, "Error launching purchase flow", e);
+                    Toast.makeText(MainActivity.this, "خطا در شروع فرایند خرید", Toast.LENGTH_SHORT).show();
                 }
             });
         }
     }
 
-    // نتیجه خرید کاربر از مایکت
+    // نتیجه خرید از مایکت
     private final IabHelper.OnIabPurchaseFinishedListener mPurchaseFinishedListener = new IabHelper.OnIabPurchaseFinishedListener() {
         @Override
         public void onIabPurchaseFinished(IabResult result, Purchase purchase) {
             Log.d(TAG, "Purchase finished: " + result + ", purchase: " + purchase);
+
+            if (mHelper == null) return;
 
             if (result.isFailure()) {
                 Log.e(TAG, "Error purchasing: " + result);
@@ -118,7 +109,7 @@ public class MainActivity extends BridgeActivity {
             Log.d(TAG, "Purchase successful: " + (purchase != null ? purchase.getSku() : "unknown"));
             Toast.makeText(MainActivity.this, "پرداخت با موفقیت انجام شد", Toast.LENGTH_SHORT).show();
 
-            // خبر دادن به جاوااسکریپت در وب‌ویو برای فعال شدن اشتراک
+            // خبر دادن به وب‌ویو جهت اعمال روزهای خریداری شده
             runOnUiThread(() -> {
                 try {
                     WebView wv = getBridge().getWebView();
@@ -135,7 +126,6 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        // انتقال پاسخ دریافتی از مایکت به هلپر پرداخت
         if (mHelper != null && mHelper.handleActivityResult(requestCode, resultCode, data)) {
             Log.d(TAG, "onActivityResult handled by IabHelper.");
             return;
@@ -146,12 +136,9 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        Log.d(TAG, "Destroying helper.");
         if (mHelper != null) {
-            try {
-                mHelper.dispose();
-            } catch (Exception e) {
-                Log.e(TAG, "Error disposing IabHelper", e);
-            }
+            mHelper.disposeWhenFinished();
             mHelper = null;
         }
     }

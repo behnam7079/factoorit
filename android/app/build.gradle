@@ -62,9 +62,10 @@ dependencies {
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
 
-    // Myket In-App Billing (Official SDK v1.19)
-    implementation 'com.github.myketstore:myket-billing-client:1.19'
+    // کتابخانه رسمی پرداخت مایکت طبق مستندات مایکت
+    implementation 'com.github.myketstore:myket-billing-client:1.6'
 }
+
 
 apply from: 'capacitor.build.gradle'
 
