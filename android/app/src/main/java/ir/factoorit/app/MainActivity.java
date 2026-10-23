@@ -11,9 +11,9 @@ import androidx.annotation.Nullable;
 
 import com.getcapacitor.BridgeActivity;
 
-import ir.myket.billingplugin.IabHelper;
-import ir.myket.billingplugin.IabResult;
-import ir.myket.billingplugin.Purchase;
+import ir.myket.billingclient.util.IabHelper;
+import ir.myket.billingclient.util.IabResult;
+import ir.myket.billingclient.util.Purchase;
 
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "FactooritBilling";
@@ -26,11 +26,22 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // کلید عمومی مایکت که در پنل مایکت بهت داده شده
-        String base64PublicKey = BuildConfig.IAB_PUBLIC_KEY;
+        // راه‌اندازی پل ارتباطی وب‌ویو به جاوا
+        try {
+            WebView webView = getBridge().getWebView();
+            webView.addJavascriptInterface(new AndroidBridgeInterface(), "AndroidBridge");
+            Log.d(TAG, "AndroidBridge attached successfully");
+        } catch (Exception e) {
+            Log.e(TAG, "Error attaching AndroidBridge", e);
+        }
 
-        mHelper = new IabHelper(this, base64PublicKey);
+        // مقداردهی اولیه مایکت با کلید عمومی (RSA Key)
+        String base64EncodedPublicKey = BuildConfig.IAB_PUBLIC_KEY;
+        mHelper = new IabHelper(this, base64EncodedPublicKey);
+        mHelper.enableDebugLogging(true, TAG);
+
         mHelper.startSetup(new IabHelper.OnIabSetupFinishedListener() {
+            @Override
             public void onIabSetupFinished(IabResult result) {
                 if (!result.isSuccess()) {
                     Log.e(TAG, "Problem setting up in-app billing: " + result);
@@ -39,22 +50,12 @@ public class MainActivity extends BridgeActivity {
                 Log.d(TAG, "Myket billing setup successful.");
             }
         });
-
-        // اتصال پل جاوااسکریپت به فرانت‌اند
-        try {
-            WebView webView = getBridge().getWebView();
-            webView.addJavascriptInterface(new AndroidBridgeInterface(), "AndroidBridge");
-            Log.d(TAG, "AndroidBridge attached to WebView");
-        } catch (Exception e) {
-            Log.e(TAG, "Error attaching AndroidBridge", e);
-        }
     }
 
     public class AndroidBridgeInterface {
-
         @JavascriptInterface
         public void buySubscription(String planId, int days, int price) {
-            Log.d(TAG, "buySubscription: plan=" + planId + ", days=" + days);
+            Log.d(TAG, "buySubscription called: plan=" + planId + ", days=" + days);
             pendingDays = days;
 
             String sku = "monthly";
@@ -70,51 +71,63 @@ public class MainActivity extends BridgeActivity {
 
             runOnUiThread(() -> {
                 if (mHelper == null) {
-                    Toast.makeText(MainActivity.this, "سیستم پرداخت در دسترس نیست.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "سرویس پرداخت مایکت آماده نیست.", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
                 try {
-                    // شروع عملیات خرید با هندلر رسمی مایکت
-                    mHelper.launchPurchaseFlow(MainActivity.this, targetSku, RC_REQUEST, mPurchaseFinishedListener, "");
+                    // مایکت خرید اشتراکی را تحت launchSubscriptionPurchaseFlow هندل می‌کند
+                    mHelper.launchSubscriptionPurchaseFlow(
+                            MainActivity.this,
+                            targetSku,
+                            RC_REQUEST,
+                            mPurchaseFinishedListener,
+                            ""
+                    );
                 } catch (Exception e) {
-                    Log.e(TAG, "Error launching purchase flow", e);
-                    Toast.makeText(MainActivity.this, "خطا در شروع فرایند خرید: لطفاً مایکت را چک کنید.", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "Error launching purchase flow, falling back to one-time purchase", e);
+                    try {
+                        mHelper.launchPurchaseFlow(
+                                MainActivity.this,
+                                targetSku,
+                                RC_REQUEST,
+                                mPurchaseFinishedListener,
+                                ""
+                        );
+                    } catch (Exception ex) {
+                        Log.e(TAG, "Fatal error starting purchase", ex);
+                        Toast.makeText(MainActivity.this, "خطا در شروع فرایند خرید", Toast.LENGTH_SHORT).show();
+                    }
                 }
             });
         }
     }
 
-    // شنونده نتیجه خرید از مایکت
-    IabHelper.OnIabPurchaseFinishedListener mPurchaseFinishedListener = new IabHelper.OnIabPurchaseFinishedListener() {
+    // نتیجه خرید کاربر از مایکت
+    private final IabHelper.OnIabPurchaseFinishedListener mPurchaseFinishedListener = new IabHelper.OnIabPurchaseFinishedListener() {
+        @Override
         public void onIabPurchaseFinished(IabResult result, Purchase purchase) {
+            Log.d(TAG, "Purchase finished: " + result + ", purchase: " + purchase);
+
             if (result.isFailure()) {
-                Log.w(TAG, "Error purchasing: " + result);
-                Toast.makeText(MainActivity.this, "خرید انجام نشد یا لغو شد.", Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Error purchasing: " + result);
+                Toast.makeText(MainActivity.this, "پرداخت لغو شد یا با خطا مواجه شد", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            Log.d(TAG, "Purchase successful: " + purchase.getSku());
-            Toast.makeText(MainActivity.this, "پرداخت با موفقیت انجام شد!", Toast.LENGTH_SHORT).show();
+            Log.d(TAG, "Purchase successful: " + (purchase != null ? purchase.getSku() : "unknown"));
+            Toast.makeText(MainActivity.this, "پرداخت با موفقیت انجام شد", Toast.LENGTH_SHORT).show();
 
-            // مصرف کردن محصول (Consume) اگر محصول مصرفی/تکرارپذیر است
-            try {
-                mHelper.consumeAsync(purchase, (p, consumeResult) -> {
-                    Log.d(TAG, "Purchase consumed");
-                });
-            } catch (Exception e) {
-                Log.e(TAG, "Consume error", e);
-            }
-
-            // اطلاع دادن به فرانت‌اند
+            // خبر دادن به جاوااسکریپت در وب‌ویو برای فعال شدن اشتراک
             runOnUiThread(() -> {
                 try {
-                    WebView webView = getBridge().getWebView();
-                    if (webView != null) {
-                        webView.evaluateJavascript("if(window.onPaymentSuccess){ window.onPaymentSuccess(" + pendingDays + "); }", null);
+                    WebView wv = getBridge().getWebView();
+                    if (wv != null && purchase != null) {
+                        String jsCode = "if(window.onPaymentSuccess){ window.onPaymentSuccess(" + pendingDays + "); }";
+                        wv.evaluateJavascript(jsCode, null);
                     }
                 } catch (Exception e) {
-                    Log.e(TAG, "Error running JS callback", e);
+                    Log.e(TAG, "JS callback error", e);
                 }
             });
         }
@@ -122,7 +135,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        // انتقال پاسخ خرید به هلپر مایکت
+        // انتقال پاسخ دریافتی از مایکت به هلپر پرداخت
         if (mHelper != null && mHelper.handleActivityResult(requestCode, resultCode, data)) {
             Log.d(TAG, "onActivityResult handled by IabHelper.");
             return;
@@ -136,7 +149,9 @@ public class MainActivity extends BridgeActivity {
         if (mHelper != null) {
             try {
                 mHelper.dispose();
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                Log.e(TAG, "Error disposing IabHelper", e);
+            }
             mHelper = null;
         }
     }

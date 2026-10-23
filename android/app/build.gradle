@@ -19,25 +19,26 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
-        
+
         def marketApplicationId = "ir.mservices.market"
         def marketBindAddress = "ir.mservices.market.InAppBillingService.BIND"
 
         manifestPlaceholders = [
-            marketApplicationId: marketApplicationId,
-            marketBindAddress: marketBindAddress,
-            marketPermission: "${marketApplicationId}.BILLING"
+                marketApplicationId: marketApplicationId,
+                marketBindAddress: marketBindAddress,
+                marketPermission: "${marketApplicationId}.BILLING"
         ]
 
         buildConfigField "String", "IAB_PUBLIC_KEY", "\"MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1PBVkiA1xa7PdL1urzPi/2t7MXDtscC5XFnYWV/VZ+EFZdMH7YjScAZanO4864tmR+8Pv77OVh1mSZ7s+iNRv8WzwJiA41UzUB9UuUp3b5GXBhIjfd0yXjYJ7y8VM1K6h2jK5rTuOtyV9tpcc4WZ11TI1A3izhEYjDr02DejDCwIDAQAB\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+            // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
     buildTypes {
         release {
             minifyEnabled false
@@ -47,7 +48,7 @@ android {
 }
 
 repositories {
-    flatDir{
+    flatDir {
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
     }
 }
@@ -62,9 +63,10 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
-    implementation 'ir.myket.billingplugin:myket-billing:2.0.4'
-}
 
+    // Myket In-App Billing (official, via JitPack)
+    implementation 'com.github.myketstore:myket-billing-client:1.9'
+}
 
 apply from: 'capacitor.build.gradle'
 
