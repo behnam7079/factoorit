@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>فاکتوریت | Factoorit</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind.js"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="html2pdf.bundle.min.js"></script>
     <script src="capacitor.js"></script>
 
     <style>
@@ -820,7 +820,7 @@
             document.getElementById('invoicePreviewModal').classList.add('hidden');
         }
 
-       async function triggerNativePrint() {
+      async function triggerNativePrint() {
     const printArea = document.getElementById('printArea');
     if (!printArea) return;
 
@@ -833,8 +833,6 @@
         alert("خطا در چاپ: " + err.message);
     }
 }
-
-
 
         function openCustomerDetail(customerName) {
             currentSelectedCustomer = customerName;
@@ -1182,6 +1180,7 @@
     alert("خطا در ذخیره فایل پشتیبان: " + (err.message || err));
   }
 }
+
 
 
 // تابع بازیابی نسخه پشتیبان (Import Backup)
