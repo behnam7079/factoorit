@@ -31,7 +31,6 @@ jobs:
       - name: Build and Sign Release APK
         working-directory: android
         env:
-          ORG_GRADLE_JAVA_HOME: ${{ steps.setup-java.outputs.aktive-java-home || env.JAVA_HOME }}
           SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}

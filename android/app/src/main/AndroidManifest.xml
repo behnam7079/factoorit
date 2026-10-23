@@ -1,14 +1,15 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- مجوزهای پرداخت درون‌برنامه‌ای مایکت -->
-    <uses-permission android:name="ir.mservices.market.BILLING" />
-    <uses-permission android:name="ir.mservices.market.permission.GET_INTENT_SENDER" />
-    <!-- برای اندروید 11 به بالا جهت تعامل با برنامه مایکت -->
+
+    <!-- مجوز پرداخت درون‌برنامه‌ای کافه‌بازار -->
+    <uses-permission android:name="ir.cafebazaar.pardakht.permission.PAY_THROUGH_BAZAAR" />
+
+    <!-- برای اندروید ۱۱ به بالا جهت شناسایی اپلیکیشن بازار -->
     <queries>
-        <package android:name="ir.mservices.market" />
+        <package android:name="com.farsitel.bazaar" />
         <intent>
             <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="myket" />
+            <data android:scheme="bazaar" />
         </intent>
     </queries>
 
@@ -19,17 +20,20 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+
         <activity
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|uiMode"
+            android:exported="true"
             android:label="@string/title_activity_main"
-            android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
-            android:exported="true">
+            android:theme="@style/AppTheme.NoActionBar">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
 
         <provider
@@ -37,11 +41,11 @@
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
-            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
         </provider>
+
     </application>
 
-    <!-- Permissions -->
-
-    <uses-permission android:name="android.permission.INTERNET" />
 </manifest>
