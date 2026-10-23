@@ -17,7 +17,6 @@ import ir.myket.billingclient.util.Purchase;
 
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "FactooritBilling";
-    private static final int RC_REQUEST = 10001;
 
     private IabHelper mHelper;
     private int pendingDays = 0;
@@ -76,11 +75,10 @@ public class MainActivity extends BridgeActivity {
                 }
 
                 try {
-                    // طبق داکیومنت مایکت: شروع فرایند خرید از طریق launchPurchaseFlow
+                    // دقیقاً طبق مستندات مایکت: (Activity, Sku, Listener, Payload)
                     mHelper.launchPurchaseFlow(
                             MainActivity.this,
                             targetSku,
-                            RC_REQUEST,
                             mPurchaseFinishedListener,
                             ""
                     );
@@ -125,20 +123,13 @@ public class MainActivity extends BridgeActivity {
     };
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if (mHelper != null && mHelper.handleActivityResult(requestCode, resultCode, data)) {
-            Log.d(TAG, "onActivityResult handled by IabHelper.");
-            return;
-        }
-        super.onActivityResult(requestCode, resultCode, data);
-    }
-
-    @Override
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "Destroying helper.");
         if (mHelper != null) {
-            mHelper.disposeWhenFinished();
+            try {
+                mHelper.dispose();
+            } catch (Exception ignored) {}
             mHelper = null;
         }
     }
