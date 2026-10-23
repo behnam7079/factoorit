@@ -11,7 +11,7 @@ import androidx.annotation.Nullable;
 
 import com.getcapacitor.BridgeActivity;
 
-import ir.myket.billingclient.util.IabHelper;
+import ir.myket.billingclient.IabHelper;
 import ir.myket.billingclient.util.IabResult;
 import ir.myket.billingclient.util.Purchase;
 
