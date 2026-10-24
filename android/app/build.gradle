@@ -8,8 +8,8 @@ android {
         applicationId "ir.factoorit.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 3
+        versionName "1.2"
 
         // کلید عمومی کافه‌بازار
         buildConfigField "String", "IAB_PUBLIC_KEY", "\"MIHNMA0GCSqGSIb3DQEBAQUAA4G7ADCBtwKBrwDIWJ0LK7YPk+qsOEHdpZOgbW6pnzufPOjoGN5LPDgi3a20rmwVFlhgF9inW/z69tmVYvJpArNpxHSBva9qLLG2q36jqAKvklas+3iIVIwXG0C0IpiWg4IwgZpmsqmhyE4SEU/KIkfiJZ02l/nDcds7CxdepqUtSjm3penEEVli1L22pJm7pHh/GqnYyyWVhbgcY3d0dw34F+NcAWVsRHRLooiOYhUGx2QLiM9Q0G0CAwEAAQ==\""
