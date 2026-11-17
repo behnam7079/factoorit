@@ -59,6 +59,41 @@
             box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.15);
         }
 
+         /* پولیش بصری کارت‌ها، ورودی‌ها و کنترل‌ها */
+        .emerald-card {
+            border: 1px solid rgba(52, 211, 153, 0.18);
+            border-radius: 1.15rem;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.20), inset 0 1px 0 rgba(255,255,255,0.025);
+            transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+        }
+        .emerald-card:hover { border-color: rgba(52, 211, 153, 0.30); }
+        .emerald-input {
+            border-radius: .85rem;
+            border-color: rgba(52, 211, 153, 0.24);
+            box-shadow: inset 0 1px 2px rgba(0,0,0,.18);
+            transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+        }
+        .emerald-input:hover { border-color: rgba(52, 211, 153, 0.48); }
+        .emerald-input:focus {
+            border-color: #34d399;
+            background: rgba(0, 0, 0, 0.52);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, .14), 0 5px 16px rgba(0,0,0,.12);
+        }
+        button { transition: transform .18s ease, filter .18s ease, box-shadow .18s ease, border-color .18s ease; }
+        button:hover { filter: brightness(1.07); }
+        button:active { transform: scale(.97); }
+        .favorite-chip {
+            display:inline-flex; align-items:center; gap:.35rem; border:1px solid rgba(52,211,153,.28);
+            background:rgba(6,78,59,.35); color:#a7f3d0; padding:.4rem .7rem; border-radius:999px;
+            font-size:.72rem; font-weight:700; cursor:pointer; white-space:nowrap;
+        }
+        .favorite-chip:hover { background:rgba(6,78,59,.65); border-color:rgba(52,211,153,.65); }
+        .favorite-star { border:1px solid rgba(52,211,153,.22); background:rgba(0,0,0,.22); border-radius:.7rem; }
+        .favorite-star.is-favorite { color:#facc15; border-color:rgba(250,204,21,.42); background:rgba(250,204,21,.09); }
+        .emerald-select { appearance:none; color:#e5e7eb; background-color:rgba(0,0,0,.42); border:1px solid rgba(52,211,153,.28); border-radius:.85rem; outline:none; }
+        .emerald-select:focus { border-color:#34d399; box-shadow:0 0 0 3px rgba(16,185,129,.14); }
+        .emerald-select option { background:#10201c; color:#f3f4f6; }
+
         @media print {
             body * {
                 visibility: hidden !important;
@@ -158,7 +193,7 @@
                         </label>
                         <input type="text"
                                id="custName"
-                               placeholder="مثال: رضا محمدی"
+                               placeholder="مثال : یزدان خدابنده"
                                class="emerald-input w-full rounded-xl p-2.5 text-sm">
                     </div>
 
@@ -181,6 +216,13 @@
                         <span class="text-red-400">*</span>
                     </label>
 
+                    <div class="rounded-xl border border-emerald-800/40 bg-black/20 p-3 space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-xs font-bold text-emerald-300">اقلام پرکاربرد ⭐</span>
+                            <span class="text-[10px] text-gray-500">برای افزودن سریع، روی کالا بزنید</span>
+                        </div>
+                        <div id="frequentItemsList" class="flex flex-wrap gap-2"></div>
+                    </div>
                     <div id="itemsContainer" class="space-y-2"></div>
 
                     <button onclick="addItemRow()"
@@ -243,13 +285,22 @@
         <div id="tabCustomers" class="hidden space-y-3">
             <h3 class="text-xs font-bold text-gray-400">وضعیت مانده حساب مشتریان</h3>
 
-            <!-- کادر سرچ مشتریان -->
-            <div class="relative">
-                <input type="text"
+              <!-- کادر سرچ مشتریان -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div class="relative">
+                    <input type="text"
                            id="searchCustomerInput"
                            oninput="renderCustomers()"
                            placeholder="🔍 جستجوی مشتری بر اساس نام یا شماره..."
                            class="emerald-input w-full rounded-xl p-2.5 text-xs">
+                </div>
+                <select id="customerSortSelect" onchange="renderCustomers()" aria-label="مرتب‌سازی مشتریان"
+                        class="emerald-select w-full p-2.5 text-xs font-bold">
+                    <option value="name-asc">به ترتیب حروف الفبا</option>
+                    
+                    <option value="debt">بیشترین بدهکار</option>
+                    <option value="credit">بیشترین بستانکار</option>
+                </select>
             </div>
 
             <div id="customerList" class="space-y-2"></div>
@@ -498,21 +549,94 @@
 
         function itemRowHTML() {
             return `
-                <div class="item-row grid grid-cols-12 gap-2">
+                <div class="item-row grid grid-cols-12 gap-2 items-center">
                     <input type="text" placeholder="عنوان کالا یا خدمات"
-                           class="item-title col-span-5 emerald-input rounded-xl p-2 text-xs">
+                           oninput="updateFavoriteStar(this)"
+                           class="item-title col-span-4 emerald-input rounded-xl p-2 text-xs">
                     <input type="text" inputmode="numeric" placeholder="تعداد" value="1"
                            oninput="calculateTotal()"
                            class="item-qty col-span-2 emerald-input rounded-xl p-2 text-xs text-center">
                     <input type="text" inputmode="numeric" placeholder="قیمت واحد"
                            oninput="calculateTotal()"
                            class="item-price col-span-4 emerald-input rounded-xl p-2 text-xs">
-                    <button onclick="removeItem(this)" type="button"
+                    <button onclick="toggleFavoriteFromRow(this)" type="button" title="ذخیره در اقلام پرکاربرد"
+                            class="favorite-star col-span-1 text-amber-300 text-sm font-bold flex items-center justify-center py-2">☆</button>
+                    <button onclick="removeItem(this)" type="button" aria-label="حذف ردیف"
                             class="col-span-1 text-red-400 hover:text-red-300 text-sm font-bold flex items-center justify-center">
                         ✖
                     </button>
                 </div>
             `;
+        }
+
+        const FREQUENT_ITEMS_KEY = 'ft_frequent_items';
+
+        function getFrequentItems() {
+            try {
+                const items = JSON.parse(localStorage.getItem(FREQUENT_ITEMS_KEY) || '[]');
+                return Array.isArray(items) ? items.filter(item => item && item.title) : [];
+            } catch (e) { return []; }
+        }
+
+        function saveFrequentItems(items) {
+            localStorage.setItem(FREQUENT_ITEMS_KEY, JSON.stringify(items));
+            renderFrequentItems();
+            document.querySelectorAll('.item-title').forEach(updateFavoriteStar);
+        }
+
+        function renderFrequentItems() {
+            const container = document.getElementById('frequentItemsList');
+            if (!container) return;
+            const items = getFrequentItems();
+            if (!items.length) {
+                container.innerHTML = '<span class="text-[10px] text-gray-500">هنوز کالایی ذخیره نشده؛ با ☆ کنار ردیف، کالا را اضافه کنید.</span>';
+                return;
+            }
+            container.innerHTML = items.map((item, index) => `
+                <span class="inline-flex items-center gap-1">
+                    <button type="button" class="favorite-chip" onclick="insertFrequentItem(${index})" title="افزودن به فاکتور">⭐ ${escapeHTML(item.title)}${item.price ? ` · ${toNumber(item.price).toLocaleString('fa-IR')}` : ''}</button>
+                    <button type="button" onclick="removeFrequentItem(${index})" aria-label="حذف کالای پرکاربرد" class="text-gray-500 hover:text-red-400 text-xs px-1">×</button>
+                </span>`).join('');
+        }
+
+        function updateFavoriteStar(input) {
+            const row = input.closest('.item-row');
+            if (!row) return;
+            const title = input.value.trim();
+            const isSaved = getFrequentItems().some(item => item.title.trim().toLowerCase() === title.toLowerCase() && title);
+            const button = row.querySelector('.favorite-star');
+            button.textContent = isSaved ? '⭐' : '☆';
+            button.classList.toggle('is-favorite', isSaved);
+            button.title = isSaved ? 'حذف از اقلام پرکاربرد' : 'ذخیره در اقلام پرکاربرد';
+        }
+
+        function toggleFavoriteFromRow(button) {
+            const row = button.closest('.item-row');
+            const title = row.querySelector('.item-title').value.trim();
+            if (!title) { alert('ابتدا عنوان کالا یا خدمات را وارد کنید.'); row.querySelector('.item-title').focus(); return; }
+            const items = getFrequentItems();
+            const index = items.findIndex(item => item.title.trim().toLowerCase() === title.toLowerCase());
+            if (index >= 0) items.splice(index, 1);
+            else items.unshift({ title, price: toNumber(row.querySelector('.item-price').value) || 0 });
+            saveFrequentItems(items);
+        }
+
+        function insertFrequentItem(index) {
+            const item = getFrequentItems()[index];
+            if (!item) return;
+            let row = [...document.querySelectorAll('.item-row')].find(r => !r.querySelector('.item-title').value.trim());
+            if (!row) { addItemRow(); row = document.querySelector('.item-row:last-child'); }
+            row.querySelector('.item-title').value = item.title;
+            row.querySelector('.item-price').value = item.price ? toNumber(item.price).toLocaleString('fa-IR') : '';
+            updateFavoriteStar(row.querySelector('.item-title'));
+            calculateTotal();
+            row.querySelector('.item-qty').focus();
+        }
+
+        function removeFrequentItem(index) {
+            const items = getFrequentItems();
+            items.splice(index, 1);
+            saveFrequentItems(items);
         }
 
         function addItemRow() {
@@ -824,15 +948,48 @@
     const printArea = document.getElementById('printArea');
     if (!printArea) return;
 
-    try {
-        await Capacitor.Plugins.Printer.printHtml({
-            html: printArea.innerHTML,
-            name: 'فاکتور'
-        });
-    } catch (err) {
-        alert("خطا در چاپ: " + err.message);
+    // بررسی اینکه آیا در محیط کاپاسیتور (اپلیکیشن موبایل) هستیم یا مرورگر وب
+    const Cap = window.Capacitor;
+    if (Cap && Cap.Plugins && Cap.Plugins.Printer) {
+        try {
+            await Cap.Plugins.Printer.printHtml({
+                html: printArea.innerHTML,
+                name: 'فاکتور'
+            });
+        } catch (err) {
+            alert("خطا در چاپ: " + err.message);
+        }
+    } else {
+        // حالت لوکال و مرورگر دسکتاپ: باز کردن پنجره استاندارد پرینت / ذخیره به PDF مرورگر
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html dir="rtl" lang="fa">
+            <head>
+                <meta charset="UTF-8">
+                <title>چاپ فاکتور</title>
+                <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+                <style>
+                    body { font-family: 'Vazirmatn', Tahoma, sans-serif; padding: 20px; background: #fff; color: #000; }
+                    @media print { body { padding: 0; } }
+                </style>
+            </head>
+            <body>
+                ${printArea.innerHTML}
+                <script>
+                    window.onload = function() {
+                        window.focus();
+                        window.print();
+                        window.onafterprint = function() { window.close(); };
+                    };
+                <\/script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
     }
 }
+
 
         function openCustomerDetail(customerName) {
             currentSelectedCustomer = customerName;
@@ -1041,6 +1198,15 @@
                 names = names.filter(n => n.toLowerCase().includes(query) || (customers[n].phone || '').includes(query));
             }
 
+            const sortMode = document.getElementById('customerSortSelect')?.value || 'name-asc';
+            const faCollator = new Intl.Collator('fa', { sensitivity: 'base' });
+            names.sort((a, b) => {
+                if (sortMode === 'name-desc') return faCollator.compare(b, a);
+                if (sortMode === 'debt') return customers[b].totalRemaining - customers[a].totalRemaining || faCollator.compare(a, b);
+                if (sortMode === 'credit') return customers[a].totalRemaining - customers[b].totalRemaining || faCollator.compare(a, b);
+                return faCollator.compare(a, b);
+            });
+
             if (names.length === 0) {
                 customerList.innerHTML = '<div class="text-center py-6 text-gray-500 text-xs">مشتری‌ای یافت نشد.</div>';
                 return;
@@ -1110,6 +1276,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('itemsContainer').innerHTML = itemRowHTML();
+            renderFrequentItems();
             selectPlan('sixMonths');
             calculateTotal();
             render();
