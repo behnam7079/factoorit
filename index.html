@@ -1114,6 +1114,25 @@
             render();
             alert(`🎉 اشتراک ${validDays.toLocaleString('fa-IR')} روزه با موفقیت فعال شد!`);
         };
+                window.onRestoreSubscription = function(sku, purchaseTime, token) {
+            console.log("Restoring subscription:", sku, purchaseTime);
+            let days = 30;
+            if (sku === 'yearly') days = 365;
+            else if (sku === 'sixMonths') days = 180;
+            else if (sku === 'monthly') days = 30;
+
+            const purchaseDate = parseInt(purchaseTime, 10);
+            const calculatedExpiry = purchaseDate + (days * 24 * 60 * 60 * 1000);
+
+            if (calculatedExpiry > Date.now()) {
+                const currentExpiry = getSubscriptionExpiry();
+                if (calculatedExpiry > currentExpiry) {
+                    localStorage.setItem('ft_sub_expiry', calculatedExpiry.toString());
+                    if (typeof render === 'function') render();
+                }
+            }
+        };
+
 
         function renderInvoices() {
             const invoices = getInvoices();
