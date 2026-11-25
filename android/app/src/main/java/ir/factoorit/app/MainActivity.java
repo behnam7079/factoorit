@@ -11,6 +11,7 @@ import com.getcapacitor.BridgeActivity;
 import ir.cafebazaar.poolakey.Payment;
 import ir.cafebazaar.poolakey.config.PaymentConfiguration;
 import ir.cafebazaar.poolakey.config.SecurityCheck;
+import ir.cafebazaar.poolakey.entity.PurchaseInfo;
 import ir.cafebazaar.poolakey.request.PurchaseRequest;
 
 public class MainActivity extends BridgeActivity {
@@ -23,7 +24,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // حل خطای کامپایلر با ارسال پارامتر دوم (localPaymentSupported = true)
+        // تنظیمات اتصال به کافه‌بازار
         PaymentConfiguration paymentConfig = new PaymentConfiguration(
                 new SecurityCheck.Enable(BuildConfig.IAB_PUBLIC_KEY),
                 true
@@ -34,6 +35,8 @@ public class MainActivity extends BridgeActivity {
         payment.connect(connection -> {
             connection.connectionSucceed(() -> {
                 Log.d(TAG, "Poolakey connected successfully");
+                // استعلام خودکار اشتراک‌های فعال به محض اتصال موفق
+                checkSubscriptions();
                 return null;
             });
             connection.connectionFailed(throwable -> {
@@ -52,7 +55,55 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    // متد دریافت و بررسی اشتراک‌های فعال کاربر از کافه‌بازار
+    private void checkSubscriptions() {
+        if (payment == null) return;
+
+        payment.getSubscribedProducts(queryResult -> {
+            queryResult.querySucceed(purchases -> {
+                Log.d(TAG, "Subscribed products queried successfully. Count: " + (purchases != null ? purchases.size() : 0));
+                if (purchases != null && !purchases.isEmpty()) {
+                    // آخرین اشتراک فعال را استخراج می‌کنیم
+                    PurchaseInfo latestPurchase = purchases.get(purchases.size() - 1);
+                    String productId = latestPurchase.getProductId();
+                    long purchaseTime = latestPurchase.getPurchaseTime();
+                    String token = latestPurchase.getPurchaseToken();
+
+                    Log.d(TAG, "Active subscription found: " + productId + " at " + purchaseTime);
+
+                    runOnUiThread(() -> {
+                        try {
+                            WebView wv = getBridge().getWebView();
+                            if (wv != null) {
+                                String jsCode = String.format(
+                                    "if(window.onSubscriptionRestored){ window.onSubscriptionRestored('%s', %d, '%s'); }",
+                                    productId, purchaseTime, token
+                                );
+                                wv.evaluateJavascript(jsCode, null);
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error sending restored subscription to JS", e);
+                        }
+                    });
+                }
+                return null;
+            });
+            queryResult.queryFailed(throwable -> {
+                Log.e(TAG, "Query subscribed products failed", throwable);
+                return null;
+            });
+            return null;
+        });
+    }
+
     public class AndroidBridgeInterface {
+
+        // متدی برای اینکه فرانت‌اند هم بتواند دستی یا هنگام لود کامل صفحه استعلام بگیرد
+        @JavascriptInterface
+        public void checkPurchases() {
+            runOnUiThread(() -> checkSubscriptions());
+        }
+
         @JavascriptInterface
         public void buySubscription(String planId, int days, int price) {
             pendingDays = days;
@@ -87,7 +138,8 @@ public class MainActivity extends BridgeActivity {
                                 WebView wv = getBridge().getWebView();
                                 if (wv != null) {
                                     String token = purchaseInfo.getPurchaseToken();
-                                    String jsCode = "if(window.onPaymentSuccess){ window.onPaymentSuccess(" + pendingDays + ", '" + token + "', '" + targetSku + "'); }";
+                                    long purchaseTime = purchaseInfo.getPurchaseTime();
+                                    String jsCode = "if(window.onPaymentSuccess){ window.onPaymentSuccess(" + pendingDays + ", '" + token + "', '" + targetSku + "', " + purchaseTime + "); }";
                                     wv.evaluateJavascript(jsCode, null);
                                 }
                             } catch (Exception e) {

@@ -1114,6 +1114,32 @@
             render();
             alert(`🎉 اشتراک ${validDays.toLocaleString('fa-IR')} روزه با موفقیت فعال شد!`);
         };
+                // دریافت اشتراک بازیابی‌شده از کافه‌بازار بر اساس تاریخ دقیق خرید
+        window.onSubscriptionRestored = function(sku, purchaseTime, token) {
+            if (!sku || !purchaseTime) return;
+
+            let days = 30;
+            if (sku === 'yearly') {
+                days = 365;
+            } else if (sku === 'sixMonths') {
+                days = 180;
+            } else if (sku === 'monthly') {
+                days = 30;
+            }
+
+            const durationMs = days * 24 * 60 * 60 * 1000;
+            const realExpiry = Number(purchaseTime) + durationMs;
+
+            const currentStoredExpiry = getSubscriptionExpiry();
+            if (realExpiry > Date.now()) {
+                if (realExpiry !== currentStoredExpiry) {
+                    localStorage.setItem('ft_sub_expiry', realExpiry.toString());
+                    if (typeof render === 'function') render();
+                    console.log("اشتراک فعال با تاریخ انقضای واقعی با موفقیت بازیابی شد.");
+                }
+            }
+        };
+
 
         function renderInvoices() {
             const invoices = getInvoices();
