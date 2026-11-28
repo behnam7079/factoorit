@@ -50,7 +50,7 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
-    // استعلام خریدهای قبلی از مایکت برای بازیابی هنگام نصب مجدد
+    // استعلام خریدهای قبلی از مایکت و بازیابی آن با نام صحیح در فرانت‌اند
     private void checkSubscriptions() {
         if (mHelper == null) {
             return;
@@ -93,8 +93,9 @@ public class MainActivity extends BridgeActivity {
                         try {
                             WebView webView = getBridge().getWebView();
                             if (webView != null) {
+                                // تطبیق دقیق با window.onRestoreSubscription در فایل جدید
                                 String jsCode = String.format(
-                                        "if(window.onRestoreSubscription){"
+                                        "if(typeof window.onRestoreSubscription === 'function'){"
                                                 + "window.onRestoreSubscription('%s', %d, '%s');"
                                                 + "}",
                                         productId,
@@ -201,27 +202,26 @@ public class MainActivity extends BridgeActivity {
                     try {
                         WebView webView = getBridge().getWebView();
 
-                        if (webView != null && purchase != null) {
-                            String productId = purchase.getSku();
-                            long purchaseTime = purchase.getPurchaseTime();
-                            String token = purchase.getToken();
+                        if (webView != null) {
+                            // ارسال تعداد روزها به onPaymentSuccess(days) مطابق با فایل جدید
+                            int activeDays = pendingDays;
+                            if (purchase != null) {
+                                String sku = purchase.getSku();
+                                if ("yearly".equalsIgnoreCase(sku)) {
+                                    activeDays = 365;
+                                } else if ("sixMonths".equalsIgnoreCase(sku)) {
+                                    activeDays = 180;
+                                } else if ("monthly".equalsIgnoreCase(sku)) {
+                                    activeDays = 30;
+                                }
+                            }
 
                             String jsCode = String.format(
-                                    "if(window.onPaymentSuccess){"
-                                            + "window.onPaymentSuccess('%s', %d, '%s');"
+                                    "if(typeof window.onPaymentSuccess === 'function'){"
+                                            + "window.onPaymentSuccess(%d);"
                                             + "}",
-                                    productId,
-                                    purchaseTime,
-                                    token
+                                    activeDays
                             );
-                            webView.evaluateJavascript(jsCode, null);
-                        } else if (webView != null) {
-                            String jsCode =
-                                    "if(window.onPaymentSuccess){"
-                                            + "window.onPaymentSuccess("
-                                            + pendingDays
-                                            + ");"
-                                            + "}";
                             webView.evaluateJavascript(jsCode, null);
                         }
                     } catch (Exception e) {
@@ -239,7 +239,6 @@ public class MainActivity extends BridgeActivity {
             try {
                 mHelper.dispose();
             } catch (Exception ignored) {
-                // نادیده گرفتن خطا هنگام آزادسازی
             }
             mHelper = null;
         }
