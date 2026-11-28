@@ -1139,6 +1139,34 @@
                 }
             }
         };
+        function requestSubscriptionRestore() {
+    if (
+        window.AndroidBridge &&
+        typeof window.AndroidBridge.checkPurchases === 'function'
+    ) {
+        window.AndroidBridge.checkPurchases();
+        return true;
+    }
+
+    return false;
+}
+
+window.addEventListener('load', function () {
+    // درخواست فوری پس از آماده‌شدن کامل صفحه
+    if (requestSubscriptionRestore()) return;
+
+    // چند تلاش کوتاه در صورت دیرتر آماده‌شدن Bridge
+    let attempts = 0;
+
+    const restoreTimer = setInterval(function () {
+        attempts += 1;
+
+        if (requestSubscriptionRestore() || attempts >= 10) {
+            clearInterval(restoreTimer);
+        }
+    }, 500);
+});
+
 
 
         function renderInvoices() {
