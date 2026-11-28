@@ -148,10 +148,6 @@ public class MainActivity extends BridgeActivity {
         String token = purchase.getPurchaseToken();
         long purchaseTime = purchase.getPurchaseTime();
 
-        /*
-         * JSONObject.quote رشته‌ها را برای JavaScript امن می‌کند و جلوی
-         * خراب‌شدن کد بر اثر کوتیشن یا کاراکترهای ویژه را می‌گیرد.
-         */
         String jsCode =
                 "(function() {"
                         + "if (typeof window.onSubscriptionRestored === 'function') {"
@@ -191,11 +187,6 @@ public class MainActivity extends BridgeActivity {
 
     public class AndroidBridgeInterface {
 
-        /*
-         * فرانت‌اند پس از load این متد را فراخوانی می‌کند. ابتدا نتیجه
-         * نگه‌داری‌شده ارسال می‌شود؛ در غیر این صورت دوباره از بازار
-         * استعلام گرفته می‌شود.
-         */
         @JavascriptInterface
         public void checkPurchases() {
             runOnUiThread(() -> {
@@ -332,17 +323,9 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onDestroy() {
+    public void onDestroy() {
         poolakeyConnected = false;
-
-        if (payment != null) {
-            try {
-                payment.disconnect();
-            } catch (Exception e) {
-                Log.e(TAG, "Poolakey disconnect failed", e);
-            }
-        }
-
+        // روش disconnect حذف شد زیرا در Poolakey وجود ندارد
         super.onDestroy();
     }
 }
